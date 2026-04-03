@@ -9,14 +9,17 @@ export function createSupabaseServerClient() {
 
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value;
+      getAll() {
+        return cookieStore.getAll();
       },
-      set(name: string, value: string, options) {
-        cookieStore.set({ name, value, ...options });
-      },
-      remove(name: string, options) {
-        cookieStore.set({ name, value: "", ...options });
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        } catch {
+          // Wywołanie z Server Component bez możliwości zapisu cookies — middleware odświeża sesję.
+        }
       }
     }
   });

@@ -1,4 +1,5 @@
-import { Badge, Button, Container, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Badge, Button, Container, Group, Stack, Text, Title } from "@mantine/core";
+import Link from "next/link";
 
 import { setupStatusItems } from "@/lib/setup-status";
 
@@ -7,10 +8,22 @@ export default function HomePage() {
     <Container py={48} size="md">
       <Stack gap="xl">
         <div>
-          <Badge color="violet" mb="md" variant="light">
-            Setup projektu
-          </Badge>
-          <Title order={1}>Campaign Layer</Title>
+          <Group justify="space-between" align="flex-start" wrap="wrap">
+            <Badge color="violet" variant="light">
+              Setup projektu
+            </Badge>
+            <Group gap="md">
+              <Anchor component={Link} href="/login" size="sm">
+                Zaloguj się
+              </Anchor>
+              <Anchor c="dimmed" component={Link} href="/dashboard" size="sm">
+                Panel
+              </Anchor>
+            </Group>
+          </Group>
+          <Title mt="md" order={1}>
+            Campaign Layer
+          </Title>
           <Text c="dimmed" mt="sm">
             Strona główna pokazuje wyłącznie stan przygotowanego setupu na podstawie PRD.
           </Text>

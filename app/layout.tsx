@@ -4,6 +4,7 @@ import "@mantine/spotlight/styles.css";
 import "./globals.css";
 
 import { ColorSchemeScript, MantineProvider, createTheme } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
       </head>
       <body>
         <MantineProvider defaultColorScheme="auto" theme={theme}>
+          <Notifications position="top-right" />
           <RegisterServiceWorker />
           {children}
         </MantineProvider>

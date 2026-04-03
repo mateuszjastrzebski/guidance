@@ -48,6 +48,21 @@ OPENAI_API_KEY=
 
 Nigdy nie commituj `.env.local`, `SUPABASE_SERVICE_ROLE_KEY` ani żadnych prywatnych credentiali.
 
+## Logowanie (magic link)
+
+Aplikacja używa **Supabase Auth** (`/login` → e-mail z linkiem → `/auth/callback` → `/dashboard`).
+
+W **Supabase → Authentication → URL Configuration → Redirect URLs** musi znaleźć się dokładnie:
+
+- `{NEXT_PUBLIC_APP_URL}/auth/callback`
+
+Przykłady:
+
+- lokalnie: `http://localhost:3000/auth/callback`
+- produkcja: `https://twoj-projekt.vercel.app/auth/callback`
+
+Bez tego magic link zwróci błąd po kliknięciu.
+
 ## Supabase: migracje i storage
 
 Repo zawiera migrację SQL:
@@ -75,10 +90,7 @@ npm install
 npm run dev
 ```
 
-Po uruchomieniu pod `http://localhost:3000` zobaczysz prostą stronę główną z:
-
-- listą tego, co setup już przygotowuje,
-- testowym przyciskiem Mantine potwierdzającym działanie design systemu.
+Po uruchomieniu pod `http://localhost:3000` zobaczysz stronę główną z linkiem do logowania, listą setupu oraz testowym przyciskiem Mantine.
 
 ## Deploy na Vercel
 
