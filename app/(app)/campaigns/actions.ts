@@ -49,31 +49,21 @@ export async function createFabula(
 
   const fabula_kind: FabulaKind = fabula_kind_raw;
 
-  const { data: campaign, error: cErr } = await supabase
-    .from("campaigns")
-    .insert({
-      name,
-      system,
-      created_by: user.id,
-      fabula_kind
-    })
-    .select("id")
-    .single();
+  // RPC `create_fabula_bootstrap`: SECURITY DEFINER — INSERT do `campaigns` i `campaign_members` w jednej transakcji,
+  // z `created_by` / `user_id` wymuszonymi na `auth.uid()`. To nie zastępuje RLS przy zwykłych SELECT-ach z klienta.
+  const { data: campaignId, error: cErr } = await supabase.rpc(
+    "create_fabula_bootstrap",
+    {
+      p_name: name,
+      p_system: system,
+      p_fabula_kind: fabula_kind
+    }
+  );
 
-  if (cErr || !campaign) {
+  if (cErr || !campaignId) {
     return { error: cErr?.message ?? "Nie udało się utworzyć fabuły." };
   }
 
-  const { error: mErr } = await supabase.from("campaign_members").insert({
-    campaign_id: campaign.id,
-    user_id: user.id,
-    role: "gm"
-  });
-
-  if (mErr) {
-    return { error: mErr.message };
-  }
-
   revalidatePath("/dashboard");
-  redirect(`/campaign/${campaign.id}/settings`);
+  redirect(`/campaign/${campaignId}/settings`);
 }
