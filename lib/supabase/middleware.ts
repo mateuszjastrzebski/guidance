@@ -37,7 +37,11 @@ export async function updateSession(request: NextRequest) {
     }
   });
 
-  await supabase.auth.getUser();
+  try {
+    await supabase.auth.getUser();
+  } catch {
+    // Sieć / Edge: nie blokuj strony ani zasobów przy błędzie auth.
+  }
 
   return supabaseResponse;
 }

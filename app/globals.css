@@ -14,8 +14,9 @@ body {
 }
 
 body {
-  background: light-dark(#f8f9fa, #101113);
-  color: light-dark(#1f2937, #f3f4f6);
+  /* Fallback bez light-dark() (starsze WebKit / parsowanie całego bloku) */
+  background: #f8f9fa;
+  color: #1f2937;
   font-family:
     Inter,
     ui-sans-serif,
@@ -24,6 +25,20 @@ body {
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #101113;
+    color: #f3f4f6;
+  }
+}
+
+@supports (color: light-dark(white, black)) {
+  body {
+    background: light-dark(#f8f9fa, #101113);
+    color: light-dark(#1f2937, #f3f4f6);
+  }
 }
 
 a {

@@ -1,15 +1,22 @@
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-  return updateSession(request);
+  try {
+    return await updateSession(request);
+  } catch {
+    return NextResponse.next({ request });
+  }
 }
 
 export const config = {
   matcher: [
-    // Wyklucz całe `/_next/*` (nie tylko static/image) — inaczej middleware
-    // odpala się m.in. na HMR / wewnętrzne requesty Next i potrafi „zepsuć” dev oraz zasoby.
-    "/((?!_next/|[^/]+\\.(?:ico|svg|png|jpg|jpeg|gif|webp)$|sw\\.js).*)"
+    // Tylko trasy, które muszą odświeżyć sesję Supabase. Unikamy odpalania
+    // middleware na `/` i `/login` — w dev potrafi to psuć RSC/streaming (pusta strona).
+    "/auth/callback",
+    "/dashboard/:path*",
+    "/campaign/:path*",
+    "/campaigns/:path*"
   ]
 };

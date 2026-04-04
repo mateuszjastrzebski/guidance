@@ -2,35 +2,37 @@
 
 import { Anchor, Button, Container, Stack, Text, TextInput, Title } from "@mantine/core";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 import { showNotification } from "@mantine/notifications";
 
+import { DevBypassLoginButton } from "@/app/login/dev-bypass-button";
 import { getAppBaseUrl } from "@/lib/auth/app-url";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-export function LoginForm() {
-  const searchParams = useSearchParams();
+export type LoginFormProps = {
+  authError?: string;
+};
+
+export function LoginForm({ authError }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const err = searchParams.get("error");
-    if (err === "callback") {
+    if (authError === "callback") {
       showNotification({
         color: "red",
         title: "Logowanie nie powiodło się",
         message: "Link mógł wygasnąć lub redirect URL w Supabase jest źle skonfigurowany."
       });
     }
-    if (err === "missing_code") {
+    if (authError === "missing_code") {
       showNotification({
         color: "red",
         title: "Brak kodu autoryzacji",
         message: "Otwórz link z maila w całości lub poproś o nowy."
       });
     }
-  }, [searchParams]);
+  }, [authError]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -102,6 +104,8 @@ export function LoginForm() {
         <Anchor component={Link} href="/" size="sm">
           Wróć na stronę główną
         </Anchor>
+
+        <DevBypassLoginButton />
       </Stack>
     </Container>
   );

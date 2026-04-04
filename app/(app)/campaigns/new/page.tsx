@@ -1,10 +1,10 @@
 import { Container, Stack, Text, Title } from "@mantine/core";
 import { redirect } from "next/navigation";
 
-import { SignOutButton } from "@/components/auth/sign-out-button";
+import { CreateFabulaForm } from "@/app/(app)/campaigns/new/create-fabula-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export default async function DashboardPage() {
+export default async function NewFabulaPage() {
   const supabase = createSupabaseServerClient();
   const {
     data: { user }
@@ -15,18 +15,16 @@ export default async function DashboardPage() {
   }
 
   return (
-    <Container py={48} size="md">
-      <Stack gap="md">
+    <Container py={48} size="sm">
+      <Stack gap="lg">
         <div>
-          <Title order={1}>Panel</Title>
+          <Title order={1}>Nowa fabuła</Title>
           <Text c="dimmed" mt="sm">
-            Jesteś zalogowany. Lista kampanii pojawi się w kolejnym kroku.
+            Kampania albo jednostrzal — na razie ta sama przestrzeń robocza; później rozwiną się osobne
+            ścieżki produktowe.
           </Text>
         </div>
-        <Text size="sm">
-          <strong>E-mail:</strong> {user.email ?? "—"}
-        </Text>
-        <SignOutButton />
+        <CreateFabulaForm />
       </Stack>
     </Container>
   );

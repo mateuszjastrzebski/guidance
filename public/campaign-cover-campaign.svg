@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" fill="none">
+  <rect width="400" height="200" rx="12" fill="#5b21b6" />
+  <path
+    d="M40 140V60l40 48 40-48 40 48 40-48 40 48 40-48 40 48 40-48v80H40Z"
+    fill="#a78bfa"
+    opacity="0.35"
+  />
+  <text
+    x="200"
+    y="110"
+    text-anchor="middle"
+    fill="#f5f3ff"
+    font-family="system-ui,sans-serif"
+    font-size="22"
+    font-weight="600"
+  >
+    Kampania
+  </text>
+</svg>
