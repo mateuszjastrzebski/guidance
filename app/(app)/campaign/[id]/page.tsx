@@ -1,9 +1,9 @@
-import { redirect } from "next/navigation";
+import { Container, Stack } from "@mantine/core";
 
-type CampaignRootPageProps = {
-  params: { id: string };
-};
-
-export default function CampaignRootPage({ params }: CampaignRootPageProps) {
-  redirect(`/campaign/${params.id}/settings`);
+export default function CampaignDashboardPage() {
+  return (
+    <Container pb="xl" size="md">
+      <Stack gap="md" />
+    </Container>
+  );
 }

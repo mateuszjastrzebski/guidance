@@ -15,7 +15,7 @@ type FabulaTileProps = {
 };
 
 export function FabulaTile({ campaign }: FabulaTileProps) {
-  const href = `/campaign/${campaign.id}/settings` as Route;
+  const href = `/campaign/${campaign.id}` as Route;
   const src = coverImageSrc(campaign);
 
   return (

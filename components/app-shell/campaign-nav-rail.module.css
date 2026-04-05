@@ -1,0 +1,21 @@
+/* Szerokość jak `CAMPAIGN_NAV_RAIL_WIDTH`; breakpoint `sm` = 48em (Mantine). */
+.railEmbedded {
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 100%;
+  padding: var(--mantine-spacing-md);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+@media (min-width: 48em) {
+  .railEmbedded {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    width: 260px;
+    min-width: 260px;
+    max-width: 260px;
+    border-bottom: none;
+    border-inline-end: 1px solid var(--mantine-color-default-border);
+  }
+}

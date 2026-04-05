@@ -1,24 +1,19 @@
 "use client";
 
-import {
-  ActionIcon,
-  AppShell,
-  Burger,
-  Button,
-  Group,
-  Menu,
-  NavLink,
-  Title,
-  Tooltip
-} from "@mantine/core";
+import { ActionIcon, AppShell, Box, Group, Menu, NavLink, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconArrowLeft, IconUser } from "@tabler/icons-react";
+import { IconUser } from "@tabler/icons-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import {
+  CAMPAIGN_NAV_RAIL_WIDTH,
+  CampaignNavRail
+} from "@/components/app-shell/campaign-nav-rail";
+import { CampaignHeaderToolbar } from "@/components/app-shell/campaign-header-toolbar";
 import { useTopBar } from "@/components/app-shell/top-bar-context";
 
 function AccountActions() {
@@ -39,21 +34,12 @@ function AccountActions() {
   );
 }
 
-function CampaignNavbar({ campaignId }: { campaignId: string }) {
-  const pathname = usePathname();
-  const settingsHref = `/campaign/${campaignId}/settings` as Route;
-  const inviteHref = `/campaign/${campaignId}/invite` as Route;
-
+function CampaignNavbar() {
   return (
-    <AppShell.Navbar p="md">
-      <NavLink
-        active={pathname === settingsHref || pathname === (`/campaign/${campaignId}` as Route)}
-        component={Link}
-        href={settingsHref}
-        label="Ustawienia"
-      />
-      <NavLink active={pathname === inviteHref} component={Link} href={inviteHref} label="Zaproszenia" />
-      <NavLink component={Link} href={"/dashboard" as Route} label="Wszystkie fabuły" mt="xl" />
+    <AppShell.Navbar p={0}>
+      <CampaignNavRail variant="shell">
+        <NavLink component={Link} href={"/dashboard" as Route} label="Wszystkie fabuły" />
+      </CampaignNavRail>
     </AppShell.Navbar>
   );
 }
@@ -63,21 +49,29 @@ type AdaptiveAppShellProps = {
 };
 
 export function AdaptiveAppShell({ children }: AdaptiveAppShellProps) {
-  const { config } = useTopBar();
+  const { config, setConfig } = useTopBar();
   const pathname = usePathname();
   const [mobileNavOpened, { toggle: toggleMobileNav }] = useDisclosure();
 
   const campaignMatch = pathname.match(/^\/campaign\/([^/]+)/);
   const campaignIdFromPath = campaignMatch?.[1] ?? null;
-  const showCampaignNavbar = Boolean(campaignIdFromPath);
+  const isCampaignSettingsRoute = /^\/campaign\/[^/]+\/settings(\/.*)?$/.test(pathname);
+  const inCampaignShell = Boolean(campaignIdFromPath);
+  const showCampaignMainNavbar = inCampaignShell && !isCampaignSettingsRoute;
+
+  useEffect(() => {
+    if (!campaignIdFromPath && config.variant === "campaign") {
+      setConfig({ variant: "app" });
+    }
+  }, [campaignIdFromPath, config.variant, setConfig]);
 
   return (
     <AppShell
       header={{ height: 56 }}
       navbar={
-        showCampaignNavbar && campaignIdFromPath
+        showCampaignMainNavbar && campaignIdFromPath
           ? {
-              width: 260,
+              width: CAMPAIGN_NAV_RAIL_WIDTH,
               breakpoint: "sm",
               collapsed: { mobile: !mobileNavOpened }
             }
@@ -86,54 +80,39 @@ export function AdaptiveAppShell({ children }: AdaptiveAppShellProps) {
       padding="md"
     >
       <AppShell.Header>
-        <Group h="100%" justify="space-between" px="md" wrap="nowrap" gap="md">
-          <Group gap="sm" miw={0} style={{ flex: 1 }} wrap="nowrap">
-            {showCampaignNavbar ? (
-              <Burger hiddenFrom="sm" onClick={toggleMobileNav} opened={mobileNavOpened} size="sm" />
-            ) : null}
-            {config.variant === "app" ? (
-              <Link
-                href={"/dashboard" as Route}
-                prefetch
-                style={{ color: "inherit", textDecoration: "none" }}
-              >
-                <Title c="inherit" lineClamp={1} order={4}>
-                  Campaign Layer
-                </Title>
-              </Link>
-            ) : (
-              <>
-                <Tooltip label="Wszystkie fabuły">
-                  <ActionIcon
-                    aria-label="Powrót do listy fabuł"
-                    component={Link}
-                    href={"/dashboard" as Route}
-                    size="lg"
-                    variant="subtle"
-                  >
-                    <IconArrowLeft size={20} />
-                  </ActionIcon>
-                </Tooltip>
-                <Title lineClamp={1} maw={{ base: "40vw", sm: 360 }} order={4}>
-                  {config.campaignName}
-                </Title>
-                <Group gap={4} ml="md" visibleFrom="sm" wrap="nowrap">
-                  <Button disabled size="xs" variant="default">
-                    Fabuła
-                  </Button>
-                  <Button disabled size="xs" variant="default">
-                    Sesje
-                  </Button>
-                </Group>
-              </>
-            )}
-          </Group>
-          <AccountActions />
-        </Group>
+        <Box
+          component="div"
+          h="100%"
+          miw={0}
+          style={{ alignItems: "center", display: "flex", width: "100%" }}
+        >
+          {inCampaignShell && campaignIdFromPath ? (
+            <CampaignHeaderToolbar
+              campaignId={campaignIdFromPath}
+              campaignName={config.variant === "campaign" ? config.campaignName : "Fabuła"}
+              mobileNavOpened={mobileNavOpened}
+              onToggleMobileNav={toggleMobileNav}
+              showNavBurger={showCampaignMainNavbar}
+            />
+          ) : (
+            <Group gap="md" h="100%" justify="space-between" px="md" style={{ flex: 1, minWidth: 0 }} wrap="nowrap">
+              <Group gap="sm" miw={0} style={{ flex: 1 }} wrap="nowrap">
+                <Link
+                  href={"/dashboard" as Route}
+                  prefetch
+                  style={{ color: "inherit", textDecoration: "none" }}
+                >
+                  <Title c="inherit" lineClamp={1} order={4}>
+                    Campaign Layer
+                  </Title>
+                </Link>
+              </Group>
+              <AccountActions />
+            </Group>
+          )}
+        </Box>
       </AppShell.Header>
-      {showCampaignNavbar && campaignIdFromPath ? (
-        <CampaignNavbar campaignId={campaignIdFromPath} />
-      ) : null}
+      {showCampaignMainNavbar && campaignIdFromPath ? <CampaignNavbar /> : null}
       <AppShell.Main>{children}</AppShell.Main>
     </AppShell>
   );
