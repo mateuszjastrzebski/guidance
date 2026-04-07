@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 
-type CampaignDashboardPageProps = {
+type Planner3PageProps = {
   params: { id: string };
 };
 
-export default function CampaignDashboardPage({ params }: CampaignDashboardPageProps) {
+export default function Planner3Page({ params }: Planner3PageProps) {
   redirect(`/campaign/${params.id}/planner-2`);
 }

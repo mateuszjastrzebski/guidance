@@ -6,7 +6,7 @@ import { IconUser } from "@tabler/icons-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import {
@@ -15,6 +15,8 @@ import {
 } from "@/components/app-shell/campaign-nav-rail";
 import { CampaignHeaderToolbar } from "@/components/app-shell/campaign-header-toolbar";
 import { useTopBar } from "@/components/app-shell/top-bar-context";
+
+const DESKTOP_NAV_COLLAPSED_STORAGE_KEY = "campaign-layer-sidenav-desktop-collapsed";
 
 function AccountActions() {
   return (
@@ -35,10 +37,60 @@ function AccountActions() {
 }
 
 function CampaignNavbar() {
+  const pathname = usePathname();
+  const campaignMatch = pathname.match(/^\/campaign\/([^/]+)/);
+  const campaignId = campaignMatch?.[1];
+  if (!campaignId) {
+    return null;
+  }
+
+  const campaignRoot = `/campaign/${campaignId}` as Route;
+  const planner2Href = `${campaignRoot}/planner-2` as Route;
+  const planner2Exact =
+    pathname === planner2Href ||
+    pathname === `${planner2Href}/` ||
+    pathname === campaignRoot ||
+    pathname === `${campaignRoot}/`;
+
   return (
     <AppShell.Navbar p={0}>
       <CampaignNavRail variant="shell">
-        <NavLink component={Link} href={"/dashboard" as Route} label="Wszystkie fabuły" />
+        <NavLink
+          active={planner2Exact}
+          component={Link}
+          href={planner2Href}
+          label="Planner"
+          prefetch
+        />
+        <NavLink
+          active={pathname.startsWith(`${campaignRoot}/story-arcs`)}
+          component={Link}
+          href={`${campaignRoot}/story-arcs` as Route}
+          label="Story arcs"
+          prefetch
+        />
+        <NavLink
+          active={pathname.startsWith(`${campaignRoot}/threads`)}
+          component={Link}
+          href={`${campaignRoot}/threads` as Route}
+          label="Wątki"
+          prefetch
+        />
+        <NavLink
+          active={pathname.startsWith(`${campaignRoot}/quests`)}
+          component={Link}
+          href={`${campaignRoot}/quests` as Route}
+          label="Zadania"
+          prefetch
+        />
+        <NavLink
+          active={pathname.startsWith(`${campaignRoot}/scenes`)}
+          component={Link}
+          href={`${campaignRoot}/scenes` as Route}
+          label="Sceny"
+          prefetch
+        />
+        <NavLink component={Link} href={"/dashboard" as Route} label="Wszystkie fabuły" prefetch />
       </CampaignNavRail>
     </AppShell.Navbar>
   );
@@ -51,11 +103,47 @@ type AdaptiveAppShellProps = {
 export function AdaptiveAppShell({ children }: AdaptiveAppShellProps) {
   const { config, setConfig } = useTopBar();
   const pathname = usePathname();
-  const [mobileNavOpened, { toggle: toggleMobileNav }] = useDisclosure();
+  const [mobileNavOpened, { close: closeMobileNav, toggle: toggleMobileNav }] = useDisclosure();
+  /**
+   * Mantine: `navbar.collapsed.desktop === true` ⇒ navbar schowany (patrz przykład CollapseDesktop w docs).
+   * Trzymamy stan „panel widoczny” jak w docs (`desktopOpened`), w localStorage zapisujemy dotychczasowy znacznik „schowany”.
+   */
+  const [desktopNavbarOpened, setDesktopNavbarOpened] = useState(true);
+
+  useLayoutEffect(() => {
+    try {
+      const raw = localStorage.getItem(DESKTOP_NAV_COLLAPSED_STORAGE_KEY);
+      if (raw === null) return;
+      const storedCollapsed = JSON.parse(raw) === true;
+      setDesktopNavbarOpened(!storedCollapsed);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        DESKTOP_NAV_COLLAPSED_STORAGE_KEY,
+        JSON.stringify(!desktopNavbarOpened)
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [desktopNavbarOpened]);
+
+  const toggleDesktopNav = useCallback(() => {
+    setDesktopNavbarOpened((o) => !o);
+  }, []);
+
+  useEffect(() => {
+    closeMobileNav();
+  }, [pathname, closeMobileNav]);
 
   const campaignMatch = pathname.match(/^\/campaign\/([^/]+)/);
   const campaignIdFromPath = campaignMatch?.[1] ?? null;
   const isCampaignSettingsRoute = /^\/campaign\/[^/]+\/settings(\/.*)?$/.test(pathname);
+  const isCampaignWhiteboardRoute = /^\/campaign\/[^/]+(?:\/planner-2)?$/.test(pathname);
   const inCampaignShell = Boolean(campaignIdFromPath);
   const showCampaignMainNavbar = inCampaignShell && !isCampaignSettingsRoute;
 
@@ -73,11 +161,25 @@ export function AdaptiveAppShell({ children }: AdaptiveAppShellProps) {
           ? {
               width: CAMPAIGN_NAV_RAIL_WIDTH,
               breakpoint: "sm",
-              collapsed: { mobile: !mobileNavOpened }
+              collapsed: { desktop: !desktopNavbarOpened, mobile: !mobileNavOpened }
             }
           : undefined
       }
-      padding="md"
+      padding={isCampaignWhiteboardRoute ? 0 : "md"}
+      styles={
+        isCampaignWhiteboardRoute
+          ? {
+              root: { minHeight: "100dvh" },
+              main: {
+                display: "flex",
+                flex: 1,
+                flexDirection: "column",
+                minHeight: 0,
+                overflow: "hidden"
+              }
+            }
+          : undefined
+      }
     >
       <AppShell.Header>
         <Box
@@ -90,7 +192,9 @@ export function AdaptiveAppShell({ children }: AdaptiveAppShellProps) {
             <CampaignHeaderToolbar
               campaignId={campaignIdFromPath}
               campaignName={config.variant === "campaign" ? config.campaignName : "Fabuła"}
+              desktopNavCollapsed={showCampaignMainNavbar ? !desktopNavbarOpened : undefined}
               mobileNavOpened={mobileNavOpened}
+              onToggleDesktopNav={showCampaignMainNavbar ? toggleDesktopNav : undefined}
               onToggleMobileNav={toggleMobileNav}
               showNavBurger={showCampaignMainNavbar}
             />

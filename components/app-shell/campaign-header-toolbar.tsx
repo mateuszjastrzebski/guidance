@@ -1,7 +1,11 @@
 "use client";
 
 import { ActionIcon, Burger, Group, Title, Tooltip, type MantineSpacing } from "@mantine/core";
-import { IconArrowLeft } from "@tabler/icons-react";
+import {
+  IconArrowLeft,
+  IconLayoutSidebarLeftCollapse,
+  IconLayoutSidebarLeftExpand
+} from "@tabler/icons-react";
 import type { Route } from "next";
 import Link from "next/link";
 
@@ -13,6 +17,9 @@ export type CampaignHeaderToolbarProps = {
   showNavBurger: boolean;
   mobileNavOpened: boolean;
   onToggleMobileNav: () => void;
+  /** Ukryty lewy panel (tylko ≥ sm); gdy brak — przycisk się nie renderuje. */
+  desktopNavCollapsed?: boolean;
+  onToggleDesktopNav?: () => void;
   /** Odstępy między sekcjami w prawym bloku (sesja / zaakceptowali / ustawienia). */
   actionsSectionGap?: MantineSpacing;
 };
@@ -27,6 +34,8 @@ export function CampaignHeaderToolbar({
   showNavBurger,
   mobileNavOpened,
   onToggleMobileNav,
+  desktopNavCollapsed,
+  onToggleDesktopNav,
   actionsSectionGap = "xl"
 }: CampaignHeaderToolbarProps) {
   return (
@@ -43,6 +52,24 @@ export function CampaignHeaderToolbar({
       <Group gap="sm" miw={0} style={{ flex: "1 1 0%", minWidth: 0 }} wrap="nowrap">
         {showNavBurger ? (
           <Burger hiddenFrom="sm" onClick={onToggleMobileNav} opened={mobileNavOpened} size="sm" />
+        ) : null}
+        {onToggleDesktopNav != null && desktopNavCollapsed != null ? (
+          <Tooltip label={desktopNavCollapsed ? "Pokaż panel nawigacji" : "Ukryj panel nawigacji"}>
+            <ActionIcon
+              aria-expanded={!desktopNavCollapsed}
+              aria-label={desktopNavCollapsed ? "Pokaż panel nawigacji" : "Ukryj panel nawigacji"}
+              onClick={onToggleDesktopNav}
+              size="lg"
+              variant="subtle"
+              visibleFrom="sm"
+            >
+              {desktopNavCollapsed ? (
+                <IconLayoutSidebarLeftExpand size={20} />
+              ) : (
+                <IconLayoutSidebarLeftCollapse size={20} />
+              )}
+            </ActionIcon>
+          </Tooltip>
         ) : null}
         <Tooltip label="Wszystkie fabuły">
           <ActionIcon

@@ -1,6 +1,6 @@
 # Campaign Layer
 
-Setup techniczny projektu oparty o [`ttrpg-prd.md`](./ttrpg-prd.md). Repo zawiera tylko fundament aplikacji: Next.js 14, Mantine, integrację z Supabase, minimalne PWA, stronę statusową oraz migrację schematu danych. Nie ma tu jeszcze ekranów produktowych z MVP.
+Setup techniczny projektu oparty o [`ttrpg-prd.md`](./docs/ttrpg-prd.md). Pozostała dokumentacja produktowa: [`docs/`](./docs/). Repo zawiera tylko fundament aplikacji: Next.js 14, Mantine, integrację z Supabase, minimalne PWA, stronę statusową oraz migrację schematu danych. Nie ma tu jeszcze ekranów produktowych z MVP.
 
 ## Wymagane teraz
 

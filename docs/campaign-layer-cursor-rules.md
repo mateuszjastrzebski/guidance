@@ -1,6 +1,6 @@
 # Campaign Layer — Cursor AI Guidelines
 
-> **Dokument:** `campaign-layer-cursor-rules.md`
+> **Dokument:** `docs/campaign-layer-cursor-rules.md`
 > **Wersja:** v1.0
 > **Data:** 2026-04-04
 > **Autor:** Campaign Layer / solo
