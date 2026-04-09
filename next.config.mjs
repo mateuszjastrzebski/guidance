@@ -1,13 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    typedRoutes: true,
-    optimizePackageImports: [
-      "@mantine/core",
-      "@mantine/hooks",
-      "@mantine/notifications",
-      "@mantine/spotlight"
-    ]
+    // Nie dodawaj @mantine/* do optimizePackageImports — psuje bundling "use client" i MantineProvider.
+    // typedRoutes wyłączone — niekompatybilne z Turbopack w Next 14.2.x
   }
 };
 

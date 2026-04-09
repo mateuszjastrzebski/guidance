@@ -65,5 +65,5 @@ export async function createFabula(
   }
 
   revalidatePath("/dashboard");
-  redirect(`/campaign/${campaignId}/settings`);
+  redirect(`/campaign/${campaignId}`);
 }
