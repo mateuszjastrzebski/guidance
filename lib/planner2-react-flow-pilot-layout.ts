@@ -44,7 +44,7 @@ const EST_INFO = { h: 180, w: 260 } as const;
  * Zewnętrzny prostokąt karty eventu (padding 40 + min. szerokość 260) — zgodny z `EventNodeInner`.
  * Używany w kolizjach / rozsunięciu i w podglądzie wstawiania (1:1 z kaflem).
  */
-export const PLANNER_EVENT_OUTER_PX = { h: 320, w: 340 } as const;
+export const PLANNER_EVENT_OUTER_PX = { h: 400, w: 340 } as const;
 
 const EST_EVENT = {
   h: PLANNER_EVENT_OUTER_PX.h,

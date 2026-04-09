@@ -19,9 +19,13 @@
   cursor: grabbing;
 }
 
-.planner-flow-canvas .planner-pilot-edge-plus-wrap {
-  pointer-events: all;
-  z-index: 10;
+.planner-flow-canvas .planner-pilot-edge-plus-hit {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  pointer-events: auto;
+  /* Nad SVG krawędzi i panelem — żeby klik nie wpadał w „przerwę” między linią a przyciskiem. */
+  z-index: 100;
 }
 
 .planner-flow-canvas .planner-pilot-edge-plus {

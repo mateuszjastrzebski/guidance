@@ -122,6 +122,9 @@ export const DEFAULT_PLANNER_EVENT_HANDLE_SLOTS: PlannerEventHandleSlots = {
   top: 50
 };
 
+/** Placeholder jednego pola edycji eventu (tytuł + „co” w jednym polu). */
+export const PLANNER_EVENT_EDITOR_PLACEHOLDER = "Co ma się wydarzyć?";
+
 export const DEFAULT_PLANNER_EVENT_NODE_DATA: PlannerEventNodeData = {
   characterIds: undefined,
   co: "",

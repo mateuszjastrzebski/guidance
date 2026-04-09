@@ -61,7 +61,8 @@ export function buildThreadTimelineRows(
     const ids = orders[threadKey] ?? [];
     const orderedEvents: ThreadTimelineEventTile[] = [];
     let sampleLabel: string | undefined;
-    let accent = plannerAccentColorFromThreadId(threadKey);
+    /** Ten sam kolor co na węźle w Swobodnym (`data.threadColor`), nie seed z listy questów. */
+    let accentFromEvents: string | undefined;
 
     for (const id of ids) {
       const n = byId.get(id);
@@ -72,16 +73,20 @@ export function buildThreadTimelineRows(
       if (data.threadLabel?.trim()) {
         sampleLabel = data.threadLabel;
       }
-      if (data.threadColor) {
-        accent = data.threadColor;
+      const tc = data.threadColor?.trim();
+      if (tc) {
+        accentFromEvents = tc;
       }
       orderedEvents.push({ data, id: n.id });
     }
 
     const quest = threadOptions.find((t) => t.id === threadKey);
-    if (quest?.color) {
-      accent = quest.color;
-    }
+    const accent =
+      accentFromEvents ??
+      (threadKey !== "__none__" && quest?.color ? quest.color : undefined) ??
+      (threadKey === "__none__"
+        ? "#868e96"
+        : plannerAccentColorFromThreadId(threadKey));
 
     rows.push({
       accentColor: accent,

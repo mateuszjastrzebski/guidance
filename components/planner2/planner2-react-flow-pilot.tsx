@@ -168,8 +168,7 @@ function plannerPlacementPreviewNode(
   return {
     data: {
       ...DEFAULT_PLANNER_EVENT_NODE_DATA,
-      isPlacementPreview: true,
-      title: "Nowy event"
+      isPlacementPreview: true
     },
     draggable: false,
     height: h,
@@ -257,10 +256,7 @@ function newEventNode(index: number): Node<PlannerEventNodeData> {
   const col = index % 4;
   const row = Math.floor(index / 4);
   return {
-    data: {
-      ...DEFAULT_PLANNER_EVENT_NODE_DATA,
-      title: `Event ${index + 1}`
-    },
+    data: { ...DEFAULT_PLANNER_EVENT_NODE_DATA },
     dragHandle: PLANNER_PILOT_NODE_DRAG_SELECTOR,
     id,
     position: { x: 40 + col * 280, y: 40 + row * 200 },
@@ -296,10 +292,7 @@ function newPilotEventAt(
       ? crypto.randomUUID()
       : `ev-${Date.now()}-${index}`);
   return {
-    data: {
-      ...DEFAULT_PLANNER_EVENT_NODE_DATA,
-      title: `Event ${index + 1}`
-    },
+    data: { ...DEFAULT_PLANNER_EVENT_NODE_DATA },
     dragHandle: PLANNER_PILOT_NODE_DRAG_SELECTOR,
     id,
     position: { ...position },

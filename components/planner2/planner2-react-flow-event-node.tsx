@@ -32,6 +32,7 @@ import {
 } from "@/components/planner2/planner2-react-flow-pilot-context";
 import {
   clampHandleSlotPct,
+  PLANNER_EVENT_EDITOR_PLACEHOLDER,
   plannerAccentColorFromThreadId,
   type PlannerEventHandleSlots,
   type PlannerEventNodeData
@@ -257,6 +258,9 @@ function EventNodeInner({ id, data }: NodeProps) {
   }, []);
 
   if (d.isPlacementPreview) {
+    const skBg = "var(--mantine-color-gray-3)";
+    const skBgSoft = "var(--mantine-color-gray-2)";
+    const skBorder = "var(--mantine-color-gray-4)";
     return (
       <Box
         style={{
@@ -270,25 +274,92 @@ function EventNodeInner({ id, data }: NodeProps) {
       >
         <Box
           style={{
-            background: "var(--mantine-color-body)",
-            border: "1px dashed var(--mantine-color-violet-4)",
+            backgroundColor: "var(--mantine-color-gray-0)",
+            border: `1px dashed ${skBorder}`,
             borderRadius: "var(--mantine-radius-md)",
             maxWidth: 320,
             minWidth: 260,
-            opacity: 0.72,
             padding: "calc(var(--mantine-spacing-xs) * 2)",
             position: "relative"
           }}
         >
-          <Text c="dimmed" mb={4} size="xs">
-            Podgląd
-          </Text>
-          <Text fw={600} size="sm">
-            {d.title}
-          </Text>
-          <Text c="dimmed" mt={6} size="xs">
-            Kliknij tło planera, aby wstawić. ESC — anuluj.
-          </Text>
+          <PlannerPilotNodeDragEdges />
+          <Box className="nodrag">
+            <Group align="center" gap={4} justify="flex-start" mb={6} pb="xs" wrap="nowrap">
+              <Box
+                style={{
+                  backgroundColor: skBg,
+                  border: `1px solid ${skBorder}`,
+                  borderRadius: "var(--mantine-radius-sm)",
+                  flex: "1 1 auto",
+                  height: 22,
+                  maxWidth: 168,
+                  minWidth: 96
+                }}
+              />
+              <Box
+                style={{
+                  backgroundColor: skBgSoft,
+                  border: `1px solid ${skBorder}`,
+                  borderRadius: "var(--mantine-radius-sm)",
+                  flexShrink: 0,
+                  height: 22,
+                  width: 22
+                }}
+              />
+              <Box
+                style={{
+                  backgroundColor: skBgSoft,
+                  border: `1px solid ${skBorder}`,
+                  borderRadius: "var(--mantine-radius-sm)",
+                  flexShrink: 0,
+                  height: 22,
+                  width: 22
+                }}
+              />
+            </Group>
+            <Textarea
+              autosize
+              maxRows={14}
+              minRows={5}
+              placeholder={PLANNER_EVENT_EDITOR_PLACEHOLDER}
+              readOnly
+              resize="none"
+              size="lg"
+              styles={{
+                input: {
+                  "&::placeholder": { color: "var(--mantine-color-gray-5)" },
+                  background: "transparent",
+                  border: "none",
+                  boxShadow: "none",
+                  color: "var(--mantine-color-gray-7)",
+                  lineHeight: 1.45,
+                  padding: 0
+                },
+                root: { pointerEvents: "none", width: "100%" }
+              }}
+              tabIndex={-1}
+              value={eventNodeEditorValue(d)}
+              variant="unstyled"
+            />
+            <Group justify="flex-end" mt={6}>
+              <Box
+                style={{
+                  alignItems: "center",
+                  backgroundColor: skBgSoft,
+                  border: `1px solid ${skBorder}`,
+                  borderRadius: "var(--mantine-radius-sm)",
+                  display: "flex",
+                  height: 30,
+                  justifyContent: "center",
+                  pointerEvents: "none",
+                  width: 30
+                }}
+              >
+                <IconInfoCircle color="var(--mantine-color-gray-5)" size={16} stroke={1.5} />
+              </Box>
+            </Group>
+          </Box>
         </Box>
       </Box>
     );
@@ -637,7 +708,7 @@ function EventNodeInner({ id, data }: NodeProps) {
             maxRows={14}
             minRows={5}
             onChange={(e) => patchEventData(id, parseEventNodeEditorValue(e.currentTarget.value))}
-            placeholder="Wpisz tytuł i treść…"
+            placeholder={PLANNER_EVENT_EDITOR_PLACEHOLDER}
             resize="none"
             size="lg"
             styles={{
