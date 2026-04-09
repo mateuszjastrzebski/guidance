@@ -22,8 +22,34 @@ export function pilotEdgeHandles(side: PilotEdgeSide): { source: string; target:
   }
 }
 
-const EST_EVENT = { h: 200, w: 300 } as const;
+/** Uchwyt „wejściowy” po przeciwnej stronie węzła względem kierunku krawędzi. */
+export function oppositePilotHandle(handle: string): "bottom" | "left" | "right" | "top" {
+  switch (handle) {
+    case "left":
+      return "right";
+    case "right":
+      return "left";
+    case "top":
+      return "bottom";
+    case "bottom":
+      return "top";
+    default:
+      return "left";
+  }
+}
+
 const EST_INFO = { h: 180, w: 260 } as const;
+
+/**
+ * Zewnętrzny prostokąt karty eventu (padding 40 + min. szerokość 260) — zgodny z `EventNodeInner`.
+ * Używany w kolizjach / rozsunięciu i w podglądzie wstawiania (1:1 z kaflem).
+ */
+export const PLANNER_EVENT_OUTER_PX = { h: 320, w: 340 } as const;
+
+const EST_EVENT = {
+  h: PLANNER_EVENT_OUTER_PX.h,
+  w: PLANNER_EVENT_OUTER_PX.w
+} as const;
 
 export function estimatedNodeSize(nodeType: string | undefined): { h: number; w: number } {
   return nodeType === "info" ? EST_INFO : EST_EVENT;

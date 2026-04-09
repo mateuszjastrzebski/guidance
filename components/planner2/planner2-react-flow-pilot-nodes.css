@@ -1,0 +1,29 @@
+/*
+ * @xyflow domyślnie ustawia .react-flow__node.draggable { cursor: grab } na cały węzeł.
+ * Przenoszenie jest tylko z pasów .planner-pilot-node-drag — reszta ma kursor domyślny / tekstowy.
+ */
+.planner-flow-canvas .react-flow {
+  /* Delikatnie szare tło whiteboarda — białe kafelki (--mantine-color-body) lepiej się odcinają. */
+  --xy-background-color: var(--mantine-color-gray-1);
+}
+
+.planner-flow-canvas .react-flow__node.draggable {
+  cursor: default;
+}
+
+.planner-flow-canvas .react-flow__node.draggable .planner-pilot-node-drag {
+  cursor: grab;
+}
+
+.planner-flow-canvas .react-flow__node.draggable.dragging .planner-pilot-node-drag {
+  cursor: grabbing;
+}
+
+.planner-flow-canvas .planner-pilot-edge-plus-wrap {
+  pointer-events: all;
+  z-index: 10;
+}
+
+.planner-flow-canvas .planner-pilot-edge-plus {
+  box-shadow: 0 1px 4px rgb(0 0 0 / 18%);
+}

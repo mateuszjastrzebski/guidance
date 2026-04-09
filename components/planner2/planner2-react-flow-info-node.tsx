@@ -4,10 +4,12 @@ import { Box, Textarea } from "@mantine/core";
 import { Handle, Position, useUpdateNodeInternals, type NodeProps } from "@xyflow/react";
 import { memo, useCallback, useRef, useState } from "react";
 
+import { PlannerPilotNodeDragEdges } from "@/components/planner2/planner-pilot-node-drag-edges";
 import { Planner2ReactFlowNodeAddMenus } from "@/components/planner2/planner2-react-flow-node-add-trigger";
 import { usePlanner2ReactFlowPilot } from "@/components/planner2/planner2-react-flow-pilot-context";
 import {
   clampHandleSlotPct,
+  plannerAccentColorFromThreadId,
   plannerInfoKindBorderColor,
   plannerInfoKindLabel,
   type PlannerEventHandleSlots,
@@ -23,18 +25,24 @@ function InfoNodeInner({ id, data }: NodeProps) {
   const slotsRef = useRef(d.handleSlotPct);
   slotsRef.current = d.handleSlotPct;
 
+  const slots = d.handleSlotPct;
+  const borderColor = d.threadColor?.trim()
+    ? d.threadColor.trim()
+    : d.threadId
+      ? plannerAccentColorFromThreadId(d.threadId)
+      : plannerInfoKindBorderColor(d.kind);
+
   const handleStyle = {
-    background: "var(--mantine-color-violet-6)",
+    background: borderColor.startsWith("var(") ? "var(--mantine-color-violet-6)" : borderColor,
     border: "1px solid var(--mantine-color-body)",
     borderRadius: 4,
     height: 12,
     opacity: shellHover ? 1 : 0,
     pointerEvents: shellHover ? "auto" : "none",
     transition: "opacity 120ms ease",
-    width: 12
+    width: 12,
+    zIndex: 6
   } as const;
-  const slots = d.handleSlotPct;
-  const borderColor = plannerInfoKindBorderColor(d.kind);
 
   const onHandleShiftPointerDown = useCallback(
     (side: keyof PlannerEventHandleSlots) => (e: React.PointerEvent) => {
@@ -82,6 +90,7 @@ function InfoNodeInner({ id, data }: NodeProps) {
       onMouseLeave={() => setShellHover(false)}
       onWheelCapture={(e) => e.stopPropagation()}
       style={{
+        cursor: "default",
         display: "inline-block",
         margin: -40,
         minWidth: 0,
@@ -90,21 +99,18 @@ function InfoNodeInner({ id, data }: NodeProps) {
     >
       <Box
         ref={rootRef}
-        p="xs"
         style={{
           background: "var(--mantine-color-body)",
           border: `1px solid ${borderColor}`,
           borderRadius: "var(--mantine-radius-md)",
           maxWidth: 280,
           minWidth: 220,
+          padding: "calc(var(--mantine-spacing-xs) * 2)",
           position: "relative"
         }}
       >
-      <Planner2ReactFlowNodeAddMenus
-        hoverParent={shellHover}
-        sourceNodeId={id}
-        sourceNodeType="info"
-      />
+      <PlannerPilotNodeDragEdges />
+      <Planner2ReactFlowNodeAddMenus hoverParent={shellHover} sourceNodeId={id} />
       <Handle
         id="left"
         onPointerDownCapture={onHandleShiftPointerDown("left")}
@@ -156,12 +162,24 @@ function InfoNodeInner({ id, data }: NodeProps) {
       <Box className="nodrag">
         <Textarea
           autosize
-          maxRows={12}
-          minRows={3}
+          maxRows={14}
+          minRows={5}
           onChange={(e) => patchInfoData(id, { text: e.currentTarget.value })}
           placeholder={plannerInfoKindLabel(d.kind)}
-          size="xs"
+          resize="none"
+          size="lg"
+          styles={{
+            input: {
+              background: "transparent",
+              border: "none",
+              boxShadow: "none",
+              lineHeight: 1.45,
+              padding: 0
+            },
+            root: { width: "100%" }
+          }}
           value={d.text}
+          variant="unstyled"
         />
       </Box>
       </Box>

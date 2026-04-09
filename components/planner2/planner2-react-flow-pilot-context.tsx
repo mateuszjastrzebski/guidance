@@ -1,5 +1,6 @@
 "use client";
 
+import type { Edge } from "@xyflow/react";
 import { createContext, useContext, type ReactNode } from "react";
 
 import type { PilotEdgeSide } from "@/lib/planner2-react-flow-pilot-layout";
@@ -19,17 +20,26 @@ export type PlannerThreadOption = {
   name: string;
 };
 
+export type PlannerCharacterOption = {
+  id: string;
+  name: string;
+};
+
 export type Planner2ReactFlowPilotContextValue = {
   addNodeFromNode: (sourceId: string, spec: AddNodeFromNodeSpec) => void;
   assignThreadToEvent: (nodeId: string, thread: PlannerThreadOption | null) => void;
   campaignId: string;
+  characterOptions: PlannerCharacterOption[];
   createThreadForEvent: (
     nodeId: string,
     name: string,
     color: string
   ) => Promise<{ error?: string; thread?: PlannerThreadOption }>;
+  insertEventOnEdge: (edge: Edge) => void;
   patchEventData: (nodeId: string, partial: Partial<PlannerEventNodeData>) => void;
   patchInfoData: (nodeId: string, partial: Partial<PlannerInfoNodeData>) => void;
+  resolveEventNodeId: (nodeId: string) => string;
+  setEventCharacterIds: (nodeId: string, characterIds: string[]) => void;
   threadOptions: PlannerThreadOption[];
 };
 

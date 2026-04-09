@@ -9,6 +9,7 @@ import {
   Group,
   Loader,
   Modal,
+  MultiSelect,
   Popover,
   Select,
   Stack,
@@ -23,6 +24,7 @@ import Link from "next/link";
 import { memo, useCallback, useRef, useState } from "react";
 
 import { getQuestForBoard } from "@/app/(app)/campaign/[id]/board/quests-actions";
+import { PlannerPilotNodeDragEdges } from "@/components/planner2/planner-pilot-node-drag-edges";
 import { Planner2ReactFlowNodeAddMenus } from "@/components/planner2/planner2-react-flow-node-add-trigger";
 import {
   usePlanner2ReactFlowPilot,
@@ -30,9 +32,21 @@ import {
 } from "@/components/planner2/planner2-react-flow-pilot-context";
 import {
   clampHandleSlotPct,
+  plannerAccentColorFromThreadId,
   type PlannerEventHandleSlots,
   type PlannerEventNodeData
 } from "@/types/planner2-react-flow-pilot";
+
+function eventTileBorderColor(d: PlannerEventNodeData): string {
+  const c = d.threadColor?.trim();
+  if (c) {
+    return c;
+  }
+  if (d.threadId) {
+    return plannerAccentColorFromThreadId(d.threadId);
+  }
+  return "var(--mantine-color-gray-5)";
+}
 
 const THREAD_PICKER_POPOVER_PROPS = {
   closeOnClickOutside: true,
@@ -44,6 +58,22 @@ const THREAD_PICKER_POPOVER_PROPS = {
   withinPortal: true,
   zIndex: 5000
 };
+
+/** Jedno pole w kafelku: pierwsza linia → `title`, reszta → `co` (jak notatka w Miro). */
+function eventNodeEditorValue(d: PlannerEventNodeData): string {
+  if (d.title.trim() === "" && d.co !== "") {
+    return d.co;
+  }
+  return d.co !== "" ? `${d.title}\n${d.co}` : d.title;
+}
+
+function parseEventNodeEditorValue(value: string): Pick<PlannerEventNodeData, "co" | "title"> {
+  const i = value.indexOf("\n");
+  if (i === -1) {
+    return { title: value, co: "" };
+  }
+  return { title: value.slice(0, i), co: value.slice(i + 1) };
+}
 
 type ThreadPickerPanelProps = {
   assignThreadToEvent: (nodeId: string, thread: PlannerThreadOption | null) => void;
@@ -113,9 +143,17 @@ function ThreadPickerPanel({
 }
 
 function EventNodeInner({ id, data }: NodeProps) {
-  const { assignThreadToEvent, campaignId, createThreadForEvent, patchEventData, threadOptions } =
-    usePlanner2ReactFlowPilot();
+  const {
+    assignThreadToEvent,
+    campaignId,
+    characterOptions,
+    createThreadForEvent,
+    patchEventData,
+    setEventCharacterIds,
+    threadOptions
+  } = usePlanner2ReactFlowPilot();
   const d = data as PlannerEventNodeData;
+
   const [shellHover, setShellHover] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -137,15 +175,17 @@ function EventNodeInner({ id, data }: NodeProps) {
   const slotsRef = useRef(d.handleSlotPct);
   slotsRef.current = d.handleSlotPct;
 
+  const accent = eventTileBorderColor(d);
   const handleStyle = {
-    background: "var(--mantine-color-violet-6)",
+    background: accent.startsWith("var(") ? "var(--mantine-color-violet-6)" : accent,
     border: "1px solid var(--mantine-color-body)",
     borderRadius: 4,
     height: 12,
     opacity: shellHover ? 1 : 0,
     pointerEvents: shellHover ? "auto" : "none",
     transition: "opacity 120ms ease",
-    width: 12
+    width: 12,
+    zIndex: 6
   } as const;
   const slots = d.handleSlotPct;
   const showThreadPickerTrigger = threadHover || pickerOpen;
@@ -216,12 +256,51 @@ function EventNodeInner({ id, data }: NodeProps) {
     setCreateThreadOpen(true);
   }, []);
 
+  if (d.isPlacementPreview) {
+    return (
+      <Box
+        style={{
+          cursor: "default",
+          display: "inline-block",
+          margin: -40,
+          minWidth: 0,
+          padding: 40,
+          pointerEvents: "none"
+        }}
+      >
+        <Box
+          style={{
+            background: "var(--mantine-color-body)",
+            border: "1px dashed var(--mantine-color-violet-4)",
+            borderRadius: "var(--mantine-radius-md)",
+            maxWidth: 320,
+            minWidth: 260,
+            opacity: 0.72,
+            padding: "calc(var(--mantine-spacing-xs) * 2)",
+            position: "relative"
+          }}
+        >
+          <Text c="dimmed" mb={4} size="xs">
+            Podgląd
+          </Text>
+          <Text fw={600} size="sm">
+            {d.title}
+          </Text>
+          <Text c="dimmed" mt={6} size="xs">
+            Kliknij tło planera, aby wstawić. ESC — anuluj.
+          </Text>
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box
       onMouseEnter={() => setShellHover(true)}
       onMouseLeave={() => setShellHover(false)}
       onWheelCapture={(e) => e.stopPropagation()}
       style={{
+        cursor: "default",
         display: "inline-block",
         margin: -40,
         minWidth: 0,
@@ -230,21 +309,18 @@ function EventNodeInner({ id, data }: NodeProps) {
     >
       <Box
         ref={rootRef}
-        p="xs"
         style={{
           background: "var(--mantine-color-body)",
-          border: "1px solid var(--mantine-color-violet-5)",
+          border: `1px solid ${eventTileBorderColor(d)}`,
           borderRadius: "var(--mantine-radius-md)",
           maxWidth: 320,
           minWidth: 260,
+          padding: "calc(var(--mantine-spacing-xs) * 2)",
           position: "relative"
         }}
       >
-        <Planner2ReactFlowNodeAddMenus
-          hoverParent={shellHover}
-          sourceNodeId={id}
-          sourceNodeType="event"
-        />
+        <PlannerPilotNodeDragEdges />
+        <Planner2ReactFlowNodeAddMenus hoverParent={shellHover} sourceNodeId={id} />
         <Handle
           id="left"
           onPointerDownCapture={onHandleShiftPointerDown("left")}
@@ -294,7 +370,7 @@ function EventNodeInner({ id, data }: NodeProps) {
           type="source"
         />
         <Box className="nodrag">
-          <Group justify="space-between" mb={6}>
+          <Group justify="space-between" mb={6} pb="xs">
             {d.threadLabel ? (
               <Group
                 gap={4}
@@ -418,16 +494,19 @@ function EventNodeInner({ id, data }: NodeProps) {
               </Popover>
             )}
           </Group>
-          <Group align="center" gap={6} mb={6} wrap="nowrap">
-            <TextInput
-              flex={1}
-              miw={0}
-              onChange={(e) => patchEventData(id, { title: e.currentTarget.value })}
-              placeholder="Tytuł"
-              size="xs"
-              value={d.title}
-            />
-          </Group>
+          {characterOptions.length > 0 ? (
+            <Box className="nodrag" mb={6}>
+              <MultiSelect
+                comboboxProps={{ withinPortal: true, zIndex: 6000 }}
+                data={characterOptions.map((c) => ({ label: c.name, value: c.id }))}
+                onChange={(v) => setEventCharacterIds(id, v)}
+                onPointerDown={(e) => e.stopPropagation()}
+                placeholder="Postacie w evencie"
+                size="xs"
+                value={d.characterIds ?? []}
+              />
+            </Box>
+          ) : null}
           <Modal
             centered
             onClose={() => {
@@ -555,12 +634,24 @@ function EventNodeInner({ id, data }: NodeProps) {
           </Modal>
           <Textarea
             autosize
-            maxRows={10}
-            minRows={3}
-            onChange={(e) => patchEventData(id, { co: e.currentTarget.value })}
-            placeholder="…"
-            size="xs"
-            value={d.co}
+            maxRows={14}
+            minRows={5}
+            onChange={(e) => patchEventData(id, parseEventNodeEditorValue(e.currentTarget.value))}
+            placeholder="Wpisz tytuł i treść…"
+            resize="none"
+            size="lg"
+            styles={{
+              input: {
+                background: "transparent",
+                border: "none",
+                boxShadow: "none",
+                lineHeight: 1.45,
+                padding: 0
+              },
+              root: { width: "100%" }
+            }}
+            value={eventNodeEditorValue(d)}
+            variant="unstyled"
           />
           <Group justify="flex-end" mt={6}>
             <Tooltip label="Szczegóły eventu" position="left" withArrow>
