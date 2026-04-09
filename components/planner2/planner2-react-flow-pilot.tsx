@@ -3,7 +3,8 @@
 import "@xyflow/react/dist/style.css";
 import "@/components/planner2/planner2-react-flow-pilot-nodes.css";
 
-import { Box, Button, Group, SegmentedControl, Stack, Text, Tooltip } from "@mantine/core";
+import { Box, Button, Group, SegmentedControl, Tooltip } from "@mantine/core";
+import { IconSquareRounded } from "@tabler/icons-react";
 import {
   addEdge,
   applyNodeChanges,
@@ -73,7 +74,6 @@ import { applyPositions, extractPositions } from "@/lib/planner2-swimlane-layout
 import type { PlannerEventNodeData } from "@/types/planner2-react-flow-pilot";
 import {
   DEFAULT_PLANNER_EVENT_NODE_DATA,
-  PLANNER_INFO_KIND_LABELS,
   PLANNER_PILOT_EVENT_EDGE_TYPE,
   PLANNER_PILOT_NODE_DRAG_SELECTOR,
   defaultPlannerInfoNodeData,
@@ -110,10 +110,7 @@ function withPilotEventEdgeTypesForDisplay(
 }
 
 const PLACEMENT_PREVIEW_NODE_ID = "__placement_preview__";
-
-/** Środek kafelka w flow, zanim ruszy mysz (punkt odniesienia do wyliczenia lewego górnego rogu). */
 const PLACEMENT_PREVIEW_FALLBACK_CENTER_FLOW = { x: 200, y: 160 };
-
 type PlacementTilePx = { h: number; w: number };
 
 function readExistingEventTileSizePx(): PlacementTilePx | null {
@@ -158,6 +155,17 @@ function deepCloneSnapshot<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+function isTypingTarget(el: EventTarget | null): boolean {
+  if (!el || !(el instanceof HTMLElement)) {
+    return false;
+  }
+  const tag = el.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+    return true;
+  }
+  return el.isContentEditable;
+}
+
 type ScreenToFlowFn = (p: { x: number; y: number }) => { x: number; y: number };
 
 function plannerPlacementPreviewNode(
@@ -177,20 +185,8 @@ function plannerPlacementPreviewNode(
     selectable: false,
     style: { pointerEvents: "none", zIndex: 1000 },
     type: "event",
-    /** Bez tego RF trzyma `visibility: hidden` aż do pomiaru — podgląd był niewidoczny. */
     width: w
   } as Node<PlannerEventNodeData>;
-}
-
-function isTypingTarget(el: EventTarget | null): boolean {
-  if (!el || !(el instanceof HTMLElement)) {
-    return false;
-  }
-  const tag = el.tagName;
-  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
-    return true;
-  }
-  return el.isContentEditable;
 }
 
 function PlannerPlacementProjectionBridge({
@@ -248,6 +244,7 @@ function PlannerPlacementProjectionBridge({
 
   return null;
 }
+
 function newEventNode(index: number): Node<PlannerEventNodeData> {
   const id =
     typeof crypto !== "undefined" && crypto.randomUUID
@@ -261,22 +258,6 @@ function newEventNode(index: number): Node<PlannerEventNodeData> {
     id,
     position: { x: 40 + col * 280, y: 40 + row * 200 },
     type: "event"
-  };
-}
-
-function newInfoNode(kind: PlannerInfoKind, index: number): Node<PlannerInfoNodeData> {
-  const id =
-    typeof crypto !== "undefined" && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `inf-${Date.now()}-${index}`;
-  const col = index % 4;
-  const row = Math.floor(index / 4);
-  return {
-    data: defaultPlannerInfoNodeData(kind),
-    dragHandle: PLANNER_PILOT_NODE_DRAG_SELECTOR,
-    id,
-    position: { x: 160 + col * 260, y: 100 + row * 200 },
-    type: "info"
   };
 }
 
@@ -1242,11 +1223,6 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
     setNodes((nds) => [...nds, newEventNode(nds.length)]);
   }, [setNodes]);
 
-  const addDlaczegoInfo = useCallback(() => {
-    pushHistoryBeforeActionRef.current();
-    setNodes((nds) => [...nds, newInfoNode("dlaczego", nds.length)]);
-  }, [setNodes]);
-
   const threadTimelineRows = useMemo(
     () => buildThreadTimelineRows(nodes, edges, laneOrders, threadOptions),
     [edges, laneOrders, nodes, threadOptions]
@@ -1348,68 +1324,90 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
 
   return (
     <Planner2ReactFlowPilotProvider value={pilotContext}>
-      <Stack gap="xs" h="100%" style={{ minHeight: 0 }} w="100%">
-        <Box style={{ flex: "0 0 auto", maxWidth: "100%", minWidth: 0 }}>
-          <Group align="flex-start" gap="sm" justify="space-between" wrap="wrap">
-            <Group gap="xs" style={{ flex: "1 1 auto", minWidth: 0 }} wrap="wrap">
-              <Button onClick={addEvent} size="xs" variant="filled">
-                Dodaj event
-              </Button>
-              <Tooltip
-                label={
-                  viewMode !== "freeform"
-                    ? "Dostępne tylko w widoku Swobodnym."
-                    : "Klawisz N — kursor nad miejscem, klik w tło wstawia event. ESC — anuluj podgląd."
+      <Box
+        h="100%"
+        style={{ display: "flex", flexDirection: "column", minHeight: 0, position: "relative", width: "100%" }}
+        w="100%"
+      >
+        <Box
+          style={{
+            background: "transparent",
+            left: 0,
+            maxWidth: "100%",
+            paddingLeft: "var(--mantine-spacing-xl)",
+            paddingTop: "var(--mantine-spacing-xl)",
+            pointerEvents: "none",
+            position: "absolute",
+            top: 0,
+            zIndex: 20
+          }}
+        >
+          <Group align="center" gap="xs" style={{ pointerEvents: "auto" }} wrap="wrap">
+            <SegmentedControl
+              data={[
+                { label: "Swobodny", value: "freeform" },
+                { label: "Wątki", value: "swimlane_thread" },
+                { label: "Postacie", value: "swimlane_character" }
+              ]}
+              onChange={(v) => switchViewMode(v as PlannerViewMode)}
+              radius="md"
+              size="sm"
+              styles={{
+                indicator: {
+                  backgroundColor:
+                    "light-dark(var(--mantine-color-violet-1), var(--mantine-color-violet-8))",
+                  boxShadow: "none"
+                },
+                label: {
+                  padding: "3px 10px",
+                  "&:not([data-active])": {
+                    color: "var(--mantine-color-dimmed)"
+                  },
+                  "&[data-active]": {
+                    color:
+                      "light-dark(var(--mantine-color-violet-9), var(--mantine-color-white))"
+                  }
+                },
+                root: {
+                  backgroundColor:
+                    "light-dark(var(--mantine-color-white), var(--mantine-color-dark-6))",
+                  border:
+                    "1px solid light-dark(var(--mantine-color-violet-4), var(--mantine-color-violet-5))",
+                  boxSizing: "border-box",
+                  height: 36,
+                  maxHeight: 36,
+                  minHeight: 36,
+                  padding: 3
                 }
-                position="bottom"
-                withArrow
+              }}
+              value={viewMode}
+            />
+            <Tooltip label="Skrót klawiszowy: N" openDelay={400} position="bottom">
+              <Button
+                disabled={viewMode !== "freeform"}
+                onClick={startPlacementPreview}
+                rightSection={
+                  <Group align="center" gap={4} justify="center" wrap="nowrap">
+                    <IconSquareRounded aria-hidden size={17} stroke={1.6} style={{ opacity: 0.95 }} />
+                    <Box component="span" style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>
+                      N
+                    </Box>
+                  </Group>
+                }
+                size="sm"
+                variant="filled"
               >
-                <Box component="span" display="inline-block">
-                  <Button
-                    disabled={viewMode !== "freeform"}
-                    onClick={startPlacementPreview}
-                    size="xs"
-                    variant="light"
-                  >
-                    Wskaż miejsce (N)
-                  </Button>
-                </Box>
-              </Tooltip>
-              <Button onClick={addDlaczegoInfo} size="xs" variant="light">
-                Dodaj {PLANNER_INFO_KIND_LABELS.dlaczego.toLowerCase()}
+                Dodaj zdarzenie
               </Button>
-              <SegmentedControl
-                data={[
-                  { label: "Swobodny", value: "freeform" },
-                  { label: "Wątki", value: "swimlane_thread" },
-                  { label: "Postacie", value: "swimlane_character" }
-                ]}
-                onChange={(v) => switchViewMode(v as PlannerViewMode)}
-                size="xs"
-                value={viewMode}
-              />
-            </Group>
-            <Tooltip
-              label={
-                viewMode === "swimlane_thread"
-                  ? "Oś chronologii per wątek — strzałki zmieniają kolejność. Pełna edycja i powiązania w widoku Swobodnym."
-                  : viewMode === "swimlane_character"
-                    ? "W widoku Postacie węzły informacji są ukryte — edytuj je w widoku Swobodnym lub Wątki."
-                    : "Event = Co. Węzły informacji łącz tylko z eventem (nie ze sobą). Przeciągaj kafelek za cienką obwódkę (krawędź); Shift + uchwyt przesuwa go wzdłuż boku."
-              }
-              multiline
-              maw={320}
-              position="bottom"
-              withArrow
-            >
-              <Text c="dimmed" size="xs" style={{ cursor: "help", flexShrink: 0 }}>
-                Jak to działa?
-              </Text>
             </Tooltip>
           </Group>
         </Box>
         <Box
-          className="planner-flow-canvas"
+          className={
+            viewMode === "swimlane_thread"
+              ? "planner-flow-canvas planner-flow-canvas--thread"
+              : "planner-flow-canvas planner-flow-canvas--flow"
+          }
           style={{
             cursor:
               viewMode === "freeform" && placementPreviewActive ? "crosshair" : undefined,
@@ -1422,12 +1420,22 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
           }}
         >
           {viewMode === "swimlane_thread" ? (
-            <PlannerThreadTimelineView
-              onScroll={onThreadTimelineScroll}
-              onStepEvent={onStepThreadEvent}
-              rows={threadTimelineRows}
-              scrollRootRef={threadTimelineScrollRef}
-            />
+            <Box
+              style={{
+                display: "flex",
+                flex: 1,
+                flexDirection: "column",
+                minHeight: 0,
+                paddingTop: "calc(var(--mantine-spacing-xl) + 2.25rem)"
+              }}
+            >
+              <PlannerThreadTimelineView
+                onScroll={onThreadTimelineScroll}
+                onStepEvent={onStepThreadEvent}
+                rows={threadTimelineRows}
+                scrollRootRef={threadTimelineScrollRef}
+              />
+            </Box>
           ) : (
             <ReactFlow
               key={`${campaignId}-${viewMode}`}
@@ -1465,7 +1473,7 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
             </ReactFlow>
           )}
         </Box>
-      </Stack>
+      </Box>
     </Planner2ReactFlowPilotProvider>
   );
 }
