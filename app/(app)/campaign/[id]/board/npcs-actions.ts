@@ -1,6 +1,5 @@
 "use server";
 
-import { MOCK_DEMO_PLAYER_CHARACTERS } from "@/lib/mocks/demo-campaign-roster";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const UUID_RE =
@@ -10,11 +9,17 @@ function isUuid(value: string): boolean {
   return UUID_RE.test(value);
 }
 
-export type ListCharactersForBoardResult =
-  | { ok: true; characters: Array<{ id: string; name: string }> }
+export type PlannerNpcForBoard = {
+  id: string;
+  name: string;
+  portrait_url: string | null;
+};
+
+export type ListNpcsForBoardResult =
+  | { ok: true; npcs: PlannerNpcForBoard[] }
   | { ok: false; error: string };
 
-export async function listCharactersForBoard(campaignId: string): Promise<ListCharactersForBoardResult> {
+export async function listNpcsForBoard(campaignId: string): Promise<ListNpcsForBoardResult> {
   if (!isUuid(campaignId)) {
     return { ok: false, error: "Nieprawidłowa kampania." };
   }
@@ -29,18 +34,20 @@ export async function listCharactersForBoard(campaignId: string): Promise<ListCh
   }
 
   const { data, error } = await supabase
-    .from("characters")
-    .select("id, name")
+    .from("npcs")
+    .select("id, name, portrait_url")
     .eq("campaign_id", campaignId)
     .order("name", { ascending: true });
 
   if (error || !data) {
-    return { ok: false, error: error?.message ?? "Nie udało się pobrać postaci." };
+    return { ok: false, error: error?.message ?? "Nie udało się pobrać NPC." };
   }
 
-  const fromDb = data.map((row) => ({ id: row.id, name: row.name }));
-  const fromDemo = MOCK_DEMO_PLAYER_CHARACTERS.map((c) => ({ id: c.id, name: c.name }));
-  const characters = [...fromDb, ...fromDemo].sort((a, b) => a.name.localeCompare(b.name, "pl"));
+  const npcs: PlannerNpcForBoard[] = data.map((row) => ({
+    id: row.id,
+    name: row.name,
+    portrait_url: row.portrait_url
+  }));
 
-  return { ok: true, characters };
+  return { ok: true, npcs };
 }

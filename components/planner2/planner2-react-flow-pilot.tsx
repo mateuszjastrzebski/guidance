@@ -36,10 +36,12 @@ import {
 } from "react";
 
 import { listCharactersForBoard } from "@/app/(app)/campaign/[id]/board/characters-actions";
+import { listNpcsForBoard } from "@/app/(app)/campaign/[id]/board/npcs-actions";
 import {
   createQuestForBoard,
   listQuestsForBoard
 } from "@/app/(app)/campaign/[id]/board/quests-actions";
+import { Planner2EventDetailsDrawer } from "@/components/planner2/planner2-event-details-drawer";
 import { Planner2ReactFlowEventNode } from "@/components/planner2/planner2-react-flow-event-node";
 import { Planner2ReactFlowInfoNode } from "@/components/planner2/planner2-react-flow-info-node";
 import { Planner2ReactFlowPilotEventEdge } from "@/components/planner2/planner2-react-flow-pilot-edge";
@@ -49,6 +51,7 @@ import {
   type AddNodeFromNodeSpec,
   type Planner2ReactFlowPilotContextValue,
   type PlannerCharacterOption,
+  type PlannerNpcOption,
   type PlannerThreadOption
 } from "@/components/planner2/planner2-react-flow-pilot-context";
 import {
@@ -367,9 +370,11 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
   const [defaultViewport, setDefaultViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 });
   const [threadOptions, setThreadOptions] = useState<PlannerThreadOption[]>([]);
   const [characterOptions, setCharacterOptions] = useState<PlannerCharacterOption[]>([]);
+  const [npcOptions, setNpcOptions] = useState<PlannerNpcOption[]>([]);
   const [placementPreviewActive, setPlacementPreviewActive] = useState(false);
   const [previewFlowPos, setPreviewFlowPos] = useState<{ x: number; y: number } | null>(null);
   const [placementTilePx, setPlacementTilePx] = useState<PlacementTilePx | null>(null);
+  const [eventDetailsNodeId, setEventDetailsNodeId] = useState<string | null>(null);
 
   const viewportRef = useRef<Viewport>({ x: 0, y: 0, zoom: 1 });
   const nodesRef = useRef(nodes);
@@ -477,6 +482,38 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
     return parseDupNodeId(nodeId)?.canonicalId ?? nodeId;
   }, []);
 
+  const openEventDetails = useCallback(
+    (nodeId: string) => {
+      setEventDetailsNodeId(resolveEventNodeId(nodeId));
+    },
+    [resolveEventNodeId]
+  );
+
+  const closeEventDetails = useCallback(() => {
+    setEventDetailsNodeId(null);
+  }, []);
+
+  const eventDetailsData = useMemo((): PlannerEventNodeData | null => {
+    if (!eventDetailsNodeId) {
+      return null;
+    }
+    const n = nodes.find((x) => x.id === eventDetailsNodeId && x.type === "event");
+    if (!n) {
+      return null;
+    }
+    return (n as Node<PlannerEventNodeData>).data;
+  }, [eventDetailsNodeId, nodes]);
+
+  useEffect(() => {
+    if (!eventDetailsNodeId) {
+      return;
+    }
+    const exists = nodes.some((n) => n.id === eventDetailsNodeId && n.type === "event");
+    if (!exists) {
+      setEventDetailsNodeId(null);
+    }
+  }, [eventDetailsNodeId, nodes]);
+
   useEffect(() => {
     setBootstrapped(false);
     undoStackRef.current = [];
@@ -533,6 +570,26 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
     };
   }, [campaignId]);
 
+  useEffect(() => {
+    let canceled = false;
+    void (async () => {
+      const result = await listNpcsForBoard(campaignId);
+      if (canceled || !result.ok) {
+        return;
+      }
+      setNpcOptions(
+        result.npcs.map((n) => ({
+          id: n.id,
+          name: n.name,
+          portrait_url: n.portrait_url
+        }))
+      );
+    })();
+    return () => {
+      canceled = true;
+    };
+  }, [campaignId]);
+
   const patchEventData = useCallback(
     (nodeId: string, partial: Partial<PlannerEventNodeData>) => {
       const target = resolveEventNodeId(nodeId);
@@ -549,6 +606,26 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
     [resolveEventNodeId, setNodes]
   );
 
+  const onEventDetailsTitleChange = useCallback(
+    (title: string) => {
+      if (!eventDetailsNodeId) {
+        return;
+      }
+      patchEventData(eventDetailsNodeId, { title });
+    },
+    [eventDetailsNodeId, patchEventData]
+  );
+
+  const onEventDetailsDlaczegoChange = useCallback(
+    (dlaczego: string) => {
+      if (!eventDetailsNodeId) {
+        return;
+      }
+      patchEventData(eventDetailsNodeId, { dlaczego });
+    },
+    [eventDetailsNodeId, patchEventData]
+  );
+
   const patchInfoData = useCallback(
     (nodeId: string, partial: Partial<PlannerInfoNodeData>) => {
       setNodes((nds) =>
@@ -562,15 +639,6 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
       );
     },
     [setNodes]
-  );
-
-  const setEventCharacterIds = useCallback(
-    (nodeId: string, characterIds: string[]) => {
-      pushHistoryBeforeActionRef.current();
-      const target = resolveEventNodeId(nodeId);
-      patchEventData(target, { characterIds: characterIds.length > 0 ? characterIds : undefined });
-    },
-    [patchEventData, resolveEventNodeId]
   );
 
   const assignThreadToEvent = useCallback(
@@ -1299,12 +1367,14 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
       assignThreadToEvent,
       campaignId,
       characterOptions,
+      npcOptions,
+      closeEventDetails,
       createThreadForEvent,
       insertEventOnEdge,
+      openEventDetails,
       patchEventData,
       patchInfoData,
       resolveEventNodeId,
-      setEventCharacterIds,
       threadOptions
     }),
     [
@@ -1312,18 +1382,29 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
       assignThreadToEvent,
       campaignId,
       characterOptions,
+      npcOptions,
+      closeEventDetails,
       createThreadForEvent,
       insertEventOnEdge,
+      openEventDetails,
       patchEventData,
       patchInfoData,
       resolveEventNodeId,
-      setEventCharacterIds,
       threadOptions
     ]
   );
 
   return (
     <Planner2ReactFlowPilotProvider value={pilotContext}>
+      <Planner2EventDetailsDrawer
+        campaignCharacters={characterOptions}
+        eventData={eventDetailsData}
+        eventNodeId={eventDetailsNodeId}
+        onClose={closeEventDetails}
+        onEventDlaczegoChange={onEventDetailsDlaczegoChange}
+        onEventTitleChange={onEventDetailsTitleChange}
+        opened={eventDetailsNodeId !== null}
+      />
       <Box
         h="100%"
         style={{ display: "flex", flexDirection: "column", minHeight: 0, position: "relative", width: "100%" }}

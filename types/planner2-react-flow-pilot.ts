@@ -28,16 +28,20 @@ export type PlannerEventHandleSlots = {
   top: number;
 };
 
-/** Event = „co”: tytuł + treść zdarzenia. */
+/** Event = „co”: tytuł + treść zdarzenia + opcjonalny kontekst „dlaczego”. */
 export type PlannerEventNodeData = {
   characterIds?: string[];
   co: string;
+  /** Panel szczegółów: „Dlaczego to się stało?” */
+  dlaczego: string;
   /** Węzeł-duplikat w widoku postaci — edycja idzie do ghostSourceId. */
   ghostCharacterId?: string;
   ghostSourceId?: string;
   handleSlotPct: PlannerEventHandleSlots;
   /** Tymczasowy podgląd przy wstawianiu klawiszem N — nie zapisuje się w grafie. */
   isPlacementPreview?: boolean;
+  /** NPC przypięci do eventu (panel szczegółów), kolejność = kolejność na liście. */
+  npcIds?: string[];
   threadColor?: string;
   threadId?: string;
   threadLabel?: string;
@@ -128,6 +132,7 @@ export const PLANNER_EVENT_EDITOR_PLACEHOLDER = "Co ma się wydarzyć?";
 export const DEFAULT_PLANNER_EVENT_NODE_DATA: PlannerEventNodeData = {
   characterIds: undefined,
   co: "",
+  dlaczego: "",
   ghostCharacterId: undefined,
   ghostSourceId: undefined,
   handleSlotPct: { ...DEFAULT_PLANNER_EVENT_HANDLE_SLOTS },
@@ -196,7 +201,7 @@ export function isPlannerInfoKind(x: unknown): x is PlannerInfoKind {
   return typeof x === "string" && (INFO_KINDS as string[]).includes(x);
 }
 
-/** Event: tylko title + co + uchwyty (stare pola jak/dlaczego w JSON są pomijane). */
+/** Event: title + co + dlaczego + uchwyty (stare pola jak w JSON są pomijane). */
 export function normalizePlannerEventNodeData(raw: unknown): PlannerEventNodeData {
   if (!raw || typeof raw !== "object") {
     return { ...DEFAULT_PLANNER_EVENT_NODE_DATA };
@@ -211,16 +216,27 @@ export function normalizePlannerEventNodeData(raw: unknown): PlannerEventNodeDat
     }
   }
 
+  const npcIdsRaw = r.npcIds;
+  let npcIds: string[] | undefined;
+  if (Array.isArray(npcIdsRaw)) {
+    npcIds = npcIdsRaw.filter((x): x is string => typeof x === "string");
+    if (npcIds.length === 0) {
+      npcIds = undefined;
+    }
+  }
+
   return {
     characterIds,
     co: typeof r.co === "string" ? r.co : "",
+    dlaczego: typeof r.dlaczego === "string" ? r.dlaczego : "",
     ghostCharacterId: typeof r.ghostCharacterId === "string" ? r.ghostCharacterId : undefined,
     ghostSourceId: typeof r.ghostSourceId === "string" ? r.ghostSourceId : undefined,
     handleSlotPct: mergeHandleSlots(r.handleSlotPct),
     threadColor: typeof r.threadColor === "string" ? r.threadColor : undefined,
     threadId: typeof r.threadId === "string" ? r.threadId : undefined,
     threadLabel: typeof r.threadLabel === "string" ? r.threadLabel : undefined,
-    title: typeof r.title === "string" ? r.title : ""
+    title: typeof r.title === "string" ? r.title : "",
+    npcIds
   };
 }
 
