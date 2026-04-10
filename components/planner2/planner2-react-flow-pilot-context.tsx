@@ -25,21 +25,29 @@ export type PlannerCharacterOption = {
   name: string;
 };
 
+export type PlannerNpcOption = {
+  id: string;
+  name: string;
+  portrait_url: string | null;
+};
+
 export type Planner2ReactFlowPilotContextValue = {
   addNodeFromNode: (sourceId: string, spec: AddNodeFromNodeSpec) => void;
   assignThreadToEvent: (nodeId: string, thread: PlannerThreadOption | null) => void;
   campaignId: string;
   characterOptions: PlannerCharacterOption[];
+  npcOptions: PlannerNpcOption[];
+  closeEventDetails: () => void;
   createThreadForEvent: (
     nodeId: string,
     name: string,
     color: string
   ) => Promise<{ error?: string; thread?: PlannerThreadOption }>;
   insertEventOnEdge: (edge: Edge) => void;
+  openEventDetails: (nodeId: string) => void;
   patchEventData: (nodeId: string, partial: Partial<PlannerEventNodeData>) => void;
   patchInfoData: (nodeId: string, partial: Partial<PlannerInfoNodeData>) => void;
   resolveEventNodeId: (nodeId: string) => string;
-  setEventCharacterIds: (nodeId: string, characterIds: string[]) => void;
   threadOptions: PlannerThreadOption[];
 };
 

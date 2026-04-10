@@ -9,9 +9,7 @@ import {
   Group,
   Loader,
   Modal,
-  MultiSelect,
   Popover,
-  Select,
   Stack,
   Text,
   Textarea,
@@ -26,10 +24,11 @@ import { memo, useCallback, useRef, useState } from "react";
 import { getQuestForBoard } from "@/app/(app)/campaign/[id]/board/quests-actions";
 import { PlannerPilotNodeDragEdges } from "@/components/planner2/planner-pilot-node-drag-edges";
 import { Planner2ReactFlowNodeAddMenus } from "@/components/planner2/planner2-react-flow-node-add-trigger";
+import { usePlanner2ReactFlowPilot } from "@/components/planner2/planner2-react-flow-pilot-context";
 import {
-  usePlanner2ReactFlowPilot,
-  type PlannerThreadOption
-} from "@/components/planner2/planner2-react-flow-pilot-context";
+  THREAD_PICKER_POPOVER_PROPS,
+  ThreadPickerPanel
+} from "@/components/planner2/planner2-thread-picker-panel";
 import {
   clampHandleSlotPct,
   PLANNER_EVENT_EDITOR_PLACEHOLDER,
@@ -49,17 +48,6 @@ function eventTileBorderColor(d: PlannerEventNodeData): string {
   return "var(--mantine-color-gray-5)";
 }
 
-const THREAD_PICKER_POPOVER_PROPS = {
-  closeOnClickOutside: true,
-  position: "bottom-start" as const,
-  shadow: "md" as const,
-  trapFocus: false,
-  width: 280,
-  withArrow: true,
-  withinPortal: true,
-  zIndex: 5000
-};
-
 /** Jedno pole w kafelku: pierwsza linia → `title`, reszta → `co` (jak notatka w Miro). */
 function eventNodeEditorValue(d: PlannerEventNodeData): string {
   if (d.title.trim() === "" && d.co !== "") {
@@ -76,87 +64,18 @@ function parseEventNodeEditorValue(value: string): Pick<PlannerEventNodeData, "c
   return { title: value.slice(0, i), co: value.slice(i + 1) };
 }
 
-type ThreadPickerPanelProps = {
-  assignThreadToEvent: (nodeId: string, thread: PlannerThreadOption | null) => void;
-  eventNodeId: string;
-  onClose: () => void;
-  onOpenCreate: () => void;
-  threadId: string | undefined;
-  threadOptions: PlannerThreadOption[];
-};
-
-function ThreadPickerPanel({
-  assignThreadToEvent,
-  eventNodeId,
-  onClose,
-  onOpenCreate,
-  threadId,
-  threadOptions
-}: ThreadPickerPanelProps) {
-  return (
-    <Stack gap={6}>
-      <Select
-        clearable
-        comboboxProps={{ withinPortal: false, zIndex: 6000 }}
-        data={threadOptions.map((thread) => ({ label: thread.name, value: thread.id }))}
-        onChange={(value) => {
-          if (value === null) {
-            assignThreadToEvent(eventNodeId, null);
-            onClose();
-            return;
-          }
-          const selected = threadOptions.find((thread) => thread.id === value) ?? null;
-          assignThreadToEvent(eventNodeId, selected);
-          onClose();
-        }}
-        onPointerDown={(e) => e.stopPropagation()}
-        placeholder="Wybierz wątek"
-        size="xs"
-        value={threadId ?? null}
-      />
-      <Group justify="space-between" wrap="nowrap">
-        <Button
-          color="gray"
-          onClick={() => {
-            assignThreadToEvent(eventNodeId, null);
-            onClose();
-          }}
-          onPointerDown={(e) => e.stopPropagation()}
-          size="compact-xs"
-          variant="subtle"
-        >
-          Wyczyść
-        </Button>
-        <Button
-          onClick={() => {
-            onClose();
-            onOpenCreate();
-          }}
-          onPointerDown={(e) => e.stopPropagation()}
-          size="compact-xs"
-          variant="light"
-        >
-          Utwórz nowy
-        </Button>
-      </Group>
-    </Stack>
-  );
-}
-
 function EventNodeInner({ id, data }: NodeProps) {
   const {
     assignThreadToEvent,
     campaignId,
-    characterOptions,
     createThreadForEvent,
+    openEventDetails,
     patchEventData,
-    setEventCharacterIds,
     threadOptions
   } = usePlanner2ReactFlowPilot();
   const d = data as PlannerEventNodeData;
 
   const [shellHover, setShellHover] = useState(false);
-  const [detailsOpen, setDetailsOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [createThreadOpen, setCreateThreadOpen] = useState(false);
   const [newThreadName, setNewThreadName] = useState("");
@@ -565,19 +484,6 @@ function EventNodeInner({ id, data }: NodeProps) {
               </Popover>
             )}
           </Group>
-          {characterOptions.length > 0 ? (
-            <Box className="nodrag" mb={6}>
-              <MultiSelect
-                comboboxProps={{ withinPortal: true, zIndex: 6000 }}
-                data={characterOptions.map((c) => ({ label: c.name, value: c.id }))}
-                onChange={(v) => setEventCharacterIds(id, v)}
-                onPointerDown={(e) => e.stopPropagation()}
-                placeholder="Postacie w evencie"
-                size="xs"
-                value={d.characterIds ?? []}
-              />
-            </Box>
-          ) : null}
           <Modal
             centered
             onClose={() => {
@@ -594,55 +500,57 @@ function EventNodeInner({ id, data }: NodeProps) {
                   <Loader size="sm" />
                 </Group>
               ) : threadDetailsError ? (
-                <Text c="red" size="sm">
+                <Text c="red" size="md">
                   {threadDetailsError}
                 </Text>
               ) : threadDetails ? (
                 <>
                   <div>
-                    <Text c="dimmed" mb={4} size="xs" tt="uppercase" fw={600}>
+                    <Text
+                      mb={6}
+                      size="md"
+                      style={{
+                        color: "light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-3))"
+                      }}
+                      tt="uppercase"
+                      fw={600}
+                    >
                       Nazwa
                     </Text>
-                    <Text size="sm">{threadDetails.name}</Text>
+                    <Text fw={600} size="md" style={{ lineHeight: 1.45 }}>
+                      {threadDetails.name}
+                    </Text>
                   </div>
                   <div>
-                    <Text c="dimmed" mb={4} size="xs" tt="uppercase" fw={600}>
+                    <Text
+                      mb={6}
+                      size="md"
+                      style={{
+                        color: "light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-3))"
+                      }}
+                      tt="uppercase"
+                      fw={600}
+                    >
                       Opis
                     </Text>
-                    <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
+                    <Text
+                      size="md"
+                      style={{
+                        color: "light-dark(var(--mantine-color-gray-9), var(--mantine-color-gray-0))",
+                        lineHeight: 1.55,
+                        whiteSpace: "pre-wrap"
+                      }}
+                    >
                       {threadDetails.description?.trim() ? threadDetails.description : "—"}
                     </Text>
                   </div>
                   {d.threadId ? (
-                    <Text component={Link} href={`/campaign/${campaignId}/quests/${d.threadId}`} size="xs">
+                    <Text component={Link} href={`/campaign/${campaignId}/quests/${d.threadId}`} size="md" td="underline">
                       Otwórz stronę wątku
                     </Text>
                   ) : null}
                 </>
               ) : null}
-            </Stack>
-          </Modal>
-          <Modal
-            centered
-            onClose={() => setDetailsOpen(false)}
-            opened={detailsOpen}
-            title={d.title.trim() ? d.title : "Event"}
-          >
-            <Stack gap="md">
-              <div>
-                <Text c="dimmed" mb={4} size="xs" tt="uppercase" fw={600}>
-                  Tytuł
-                </Text>
-                <Text size="sm">{d.title.trim() ? d.title : "—"}</Text>
-              </div>
-              <div>
-                <Text c="dimmed" mb={4} size="xs" tt="uppercase" fw={600}>
-                  Co
-                </Text>
-                <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
-                  {d.co.trim() ? d.co : "—"}
-                </Text>
-              </div>
             </Stack>
           </Modal>
           <Modal
@@ -729,7 +637,7 @@ function EventNodeInner({ id, data }: NodeProps) {
               <ActionIcon
                 aria-label="Szczegóły eventu"
                 color="violet"
-                onClick={() => setDetailsOpen(true)}
+                onClick={() => openEventDetails(id)}
                 onPointerDown={(e) => e.stopPropagation()}
                 size="sm"
                 variant="subtle"

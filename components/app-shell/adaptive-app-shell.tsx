@@ -90,6 +90,20 @@ function CampaignNavbar() {
           label="Sceny"
           prefetch
         />
+        <NavLink
+          active={pathname.startsWith(`${campaignRoot}/player-characters`)}
+          component={Link}
+          href={`${campaignRoot}/player-characters` as Route}
+          label="Postacie graczy"
+          prefetch
+        />
+        <NavLink
+          active={pathname.startsWith(`${campaignRoot}/npcs`)}
+          component={Link}
+          href={`${campaignRoot}/npcs` as Route}
+          label="NPC"
+          prefetch
+        />
         <NavLink component={Link} href={"/dashboard" as Route} label="Wszystkie fabuły" prefetch />
       </CampaignNavRail>
     </AppShell.Navbar>

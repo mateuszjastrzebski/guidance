@@ -5,16 +5,10 @@ import { IconSettings } from "@tabler/icons-react";
 import type { Route } from "next";
 import Link from "next/link";
 
+import { MOCK_SESSION_RSVP_PLAYERS } from "@/lib/mocks/demo-campaign-roster";
+
 /** Tymczasowe dane UI — zastąpić fetch z Supabase (sesje / RSVP). */
 const MOCK_NEXT_SESSION_AT = new Date("2026-04-12T19:00:00");
-
-const MOCK_PLAYERS: Array<{ id: string; name: string; accepted: boolean }> = [
-  { id: "1", name: "Aria", accepted: true },
-  { id: "2", name: "Borin", accepted: true },
-  { id: "3", name: "Cael", accepted: false },
-  { id: "4", name: "Dara", accepted: false },
-  { id: "5", name: "Ewan", accepted: true }
-];
 
 const AVATAR_GAP_PX = 8;
 
@@ -67,6 +61,7 @@ export function CampaignTopBarActions({
   actionsSectionGap = "xl"
 }: CampaignTopBarActionsProps) {
   const settingsHref = `/campaign/${campaignId}/settings` as Route;
+  const playerCharactersHref = `/campaign/${campaignId}/player-characters` as Route;
   const sessionTooltip = formatSessionFull(MOCK_NEXT_SESSION_AT);
 
   return (
@@ -106,7 +101,7 @@ export function CampaignTopBarActions({
           Zaakceptowali
         </Text>
         <Group gap={AVATAR_GAP_PX} justify="flex-end" style={{ flexShrink: 0 }} wrap="nowrap">
-          {MOCK_PLAYERS.map((p) => (
+          {MOCK_SESSION_RSVP_PLAYERS.map((p) => (
             <Tooltip
               key={p.id}
               label={`${p.name} — ${p.accepted ? "Potwierdzono obecność" : "Oczekuje na potwierdzenie"}`}
@@ -114,6 +109,9 @@ export function CampaignTopBarActions({
               <Avatar
                 aria-label={p.name}
                 color={p.accepted ? "cyan" : "gray"}
+                component={Link}
+                href={playerCharactersHref}
+                prefetch
                 radius="xl"
                 size="sm"
                 styles={avatarStylesForRsvp(p.accepted)}
