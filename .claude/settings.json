@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(node -e \"const l = require\\('./package-lock.json'\\); console.log\\('next:', l.packages['node_modules/next']?.version\\); console.log\\('@supabase/ssr:', l.packages['node_modules/@supabase/ssr']?.version\\);\")",
+      "Bash(ls /Users/mathawk/Dropbox/Cursor/TTRPG/app/*/campaign/\\\\[id\\\\]/npcs/)",
+      "Bash(ls /Users/mathawk/Dropbox/Cursor/TTRPG/app/*/campaign/\\\\[id\\\\]/player-characters/)",
+      "Bash(grep -n \"children\\\\|parent\\\\|branching\" components/planner2/*.tsx lib/planner2*.ts types/*.ts)",
+      "Bash(python3 -c ':*)"
+    ]
+  }
+}

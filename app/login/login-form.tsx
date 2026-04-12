@@ -5,6 +5,8 @@ import Link from "next/link";
 import { type FormEvent, useEffect, useState } from "react";
 import { showNotification } from "@mantine/notifications";
 
+import posthog from "posthog-js";
+
 import { DevBypassLoginButton } from "@/app/login/dev-bypass-button";
 import { getAppBaseUrl } from "@/lib/auth/app-url";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -57,6 +59,9 @@ export function LoginForm({ authError }: LoginFormProps) {
         return;
       }
 
+      posthog.capture("magic_link_requested", { email: email.trim() });
+      posthog.identify(email.trim(), { email: email.trim() });
+
       showNotification({
         color: "green",
         title: "Sprawdź skrzynkę",
@@ -64,6 +69,7 @@ export function LoginForm({ authError }: LoginFormProps) {
       });
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Nieznany błąd";
+      posthog.captureException(caught instanceof Error ? caught : new Error(message));
       showNotification({
         color: "red",
         title: "Konfiguracja",

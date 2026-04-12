@@ -1,6 +1,6 @@
 "use client";
 
-import { ActionIcon, AppShell, Box, Group, Menu, NavLink, Title } from "@mantine/core";
+import { ActionIcon, AppShell, Box, Divider, Group, Menu, NavLink, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconUser } from "@tabler/icons-react";
 import type { Route } from "next";
@@ -55,18 +55,19 @@ function CampaignNavbar() {
   return (
     <AppShell.Navbar p={0}>
       <CampaignNavRail variant="shell">
+        <Text c="dimmed" fw={600} px={8} size="xs" tt="uppercase">Kampania</Text>
+        <NavLink
+          active={pathname.startsWith(`${campaignRoot}/session-dashboard`)}
+          component={Link}
+          href={`${campaignRoot}/session-dashboard` as Route}
+          label="Pulpit sesji"
+          prefetch
+        />
         <NavLink
           active={planner2Exact}
           component={Link}
           href={planner2Href}
           label="Planner"
-          prefetch
-        />
-        <NavLink
-          active={pathname.startsWith(`${campaignRoot}/story-arcs`)}
-          component={Link}
-          href={`${campaignRoot}/story-arcs` as Route}
-          label="Story arcs"
           prefetch
         />
         <NavLink
@@ -90,6 +91,10 @@ function CampaignNavbar() {
           label="Sceny"
           prefetch
         />
+
+        <Divider my={4} />
+
+        <Text c="dimmed" fw={600} px={8} size="xs" tt="uppercase">Świat</Text>
         <NavLink
           active={pathname.startsWith(`${campaignRoot}/player-characters`)}
           component={Link}
@@ -104,7 +109,24 @@ function CampaignNavbar() {
           label="NPC"
           prefetch
         />
-        <NavLink component={Link} href={"/dashboard" as Route} label="Wszystkie fabuły" prefetch />
+        <NavLink
+          active={pathname.startsWith(`${campaignRoot}/locations`)}
+          component={Link}
+          href={`${campaignRoot}/locations` as Route}
+          label="Miejsca"
+          prefetch
+        />
+
+        <Divider my={4} />
+
+        <Text c="dimmed" fw={600} px={8} size="xs" tt="uppercase">Narzędzia</Text>
+        <NavLink
+          active={pathname.startsWith(`${campaignRoot}/shop-generator`)}
+          component={Link}
+          href={`${campaignRoot}/shop-generator` as Route}
+          label="Generator sklepów"
+          prefetch
+        />
       </CampaignNavRail>
     </AppShell.Navbar>
   );

@@ -4,6 +4,7 @@ import "@xyflow/react/dist/style.css";
 import "@/components/planner2/planner2-react-flow-pilot-nodes.css";
 
 import { Box, Button, Group, SegmentedControl, Tooltip } from "@mantine/core";
+import { showNotification } from "@mantine/notifications";
 import { IconSquareRounded } from "@tabler/icons-react";
 import {
   addEdge,
@@ -36,7 +37,8 @@ import {
 } from "react";
 
 import { listCharactersForBoard } from "@/app/(app)/campaign/[id]/board/characters-actions";
-import { listNpcsForBoard } from "@/app/(app)/campaign/[id]/board/npcs-actions";
+import { createLocationForBoard, listLocationsForBoard } from "@/app/(app)/campaign/[id]/board/locations-actions";
+import { createNpcForBoard, listNpcsForBoard } from "@/app/(app)/campaign/[id]/board/npcs-actions";
 import {
   createQuestForBoard,
   listQuestsForBoard
@@ -51,6 +53,7 @@ import {
   type AddNodeFromNodeSpec,
   type Planner2ReactFlowPilotContextValue,
   type PlannerCharacterOption,
+  type PlannerLocationOption,
   type PlannerNpcOption,
   type PlannerThreadOption
 } from "@/components/planner2/planner2-react-flow-pilot-context";
@@ -60,6 +63,7 @@ import {
   parseDupNodeId
 } from "@/lib/planner2-character-dup";
 import {
+  compactPilotNodes,
   estimatedNodeSize,
   oppositePilotHandle,
   pilotEdgeHandles,
@@ -72,6 +76,7 @@ import {
   loadPlanner2ReactFlowPilot,
   savePlanner2ReactFlowPilot
 } from "@/lib/planner2-react-flow-pilot-storage";
+import { computeThreadNumbering } from "@/lib/planner2-thread-numbering";
 import { buildThreadTimelineRows } from "@/lib/planner2-thread-view-model";
 import { applyPositions, extractPositions } from "@/lib/planner2-swimlane-layout";
 import type { PlannerEventNodeData } from "@/types/planner2-react-flow-pilot";
@@ -371,10 +376,12 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
   const [threadOptions, setThreadOptions] = useState<PlannerThreadOption[]>([]);
   const [characterOptions, setCharacterOptions] = useState<PlannerCharacterOption[]>([]);
   const [npcOptions, setNpcOptions] = useState<PlannerNpcOption[]>([]);
+  const [locationOptions, setLocationOptions] = useState<PlannerLocationOption[]>([]);
   const [placementPreviewActive, setPlacementPreviewActive] = useState(false);
   const [previewFlowPos, setPreviewFlowPos] = useState<{ x: number; y: number } | null>(null);
   const [placementTilePx, setPlacementTilePx] = useState<PlacementTilePx | null>(null);
   const [eventDetailsNodeId, setEventDetailsNodeId] = useState<string | null>(null);
+  const [focusedThreadId, setFocusedThreadId] = useState<string | null>(null);
 
   const viewportRef = useRef<Viewport>({ x: 0, y: 0, zoom: 1 });
   const nodesRef = useRef(nodes);
@@ -388,6 +395,15 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
   const lastPointerClientRef = useRef({ x: 0, y: 0 });
   const screenToFlowRef = useRef<ScreenToFlowFn | null>(null);
   const placementTilePxRef = useRef<PlacementTilePx | null>(null);
+
+  const focusedThreadIdRef = useRef(focusedThreadId);
+  focusedThreadIdRef.current = focusedThreadId;
+
+  type GroupDragState = {
+    draggedNodeId: string;
+    initialPositions: Record<string, { x: number; y: number }>;
+  };
+  const groupDragRef = useRef<GroupDragState | null>(null);
 
   const bootstrappedRef = useRef(false);
   const isApplyingHistoryRef = useRef(false);
@@ -442,10 +458,17 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && placementPreviewActiveRef.current) {
-        e.preventDefault();
-        endPlacementPreview();
-        return;
+      if (e.key === "Escape") {
+        if (placementPreviewActiveRef.current) {
+          e.preventDefault();
+          endPlacementPreview();
+          return;
+        }
+        if (focusedThreadId !== null) {
+          e.preventDefault();
+          setFocusedThreadId(null);
+          return;
+        }
       }
       if ((e.metaKey || e.ctrlKey) && (e.key === "z" || e.key === "Z")) {
         if (isTypingTarget(document.activeElement)) {
@@ -476,11 +499,35 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [endPlacementPreview, startPlacementPreview]);
+  }, [endPlacementPreview, focusedThreadId, startPlacementPreview]);
 
   const resolveEventNodeId = useCallback((nodeId: string) => {
     return parseDupNodeId(nodeId)?.canonicalId ?? nodeId;
   }, []);
+
+  // Mapuje nodeId → etykietę wątku ("1", "3a" …); przelicza się przy każdej zmianie grafu
+  const threadNumberingMap = useMemo<Map<string, string>>(() => {
+    const threadIds = new Set<string>();
+    for (const n of nodes) {
+      if (n.type === "event") {
+        const tid = (n.data as PlannerEventNodeData).threadId;
+        if (tid) threadIds.add(tid);
+      }
+    }
+    const combined = new Map<string, string>();
+    for (const tid of threadIds) {
+      const partial = computeThreadNumbering(nodes, edges, tid);
+      for (const [nid, label] of partial) {
+        combined.set(nid, label);
+      }
+    }
+    return combined;
+  }, [nodes, edges]);
+
+  const getEventLabel = useCallback(
+    (nodeId: string): string | undefined => threadNumberingMap.get(nodeId),
+    [threadNumberingMap]
+  );
 
   const openEventDetails = useCallback(
     (nodeId: string) => {
@@ -589,6 +636,57 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
       canceled = true;
     };
   }, [campaignId]);
+
+  useEffect(() => {
+    let canceled = false;
+    void (async () => {
+      const result = await listLocationsForBoard(campaignId);
+      if (canceled || !result.ok) {
+        return;
+      }
+      setLocationOptions(
+        result.locations.map((l) => ({
+          id: l.id,
+          name: l.name
+        }))
+      );
+    })();
+    return () => {
+      canceled = true;
+    };
+  }, [campaignId]);
+
+  const createNpcInline = useCallback(
+    async (name: string): Promise<PlannerNpcOption | null> => {
+      const result = await createNpcForBoard(campaignId, name);
+      if (!result.ok) {
+        showNotification({ color: "red", message: result.error, title: "Błąd" });
+        return null;
+      }
+      const opt: PlannerNpcOption = {
+        id: result.npc.id,
+        name: result.npc.name,
+        portrait_url: result.npc.portrait_url
+      };
+      setNpcOptions((prev) => [...prev, opt].sort((a, b) => a.name.localeCompare(b.name)));
+      return opt;
+    },
+    [campaignId]
+  );
+
+  const createLocationInline = useCallback(
+    async (name: string): Promise<PlannerLocationOption | null> => {
+      const result = await createLocationForBoard(campaignId, name);
+      if (!result.ok) {
+        showNotification({ color: "red", message: result.error, title: "Błąd" });
+        return null;
+      }
+      const opt: PlannerLocationOption = { id: result.location.id, name: result.location.name };
+      setLocationOptions((prev) => [...prev, opt].sort((a, b) => a.name.localeCompare(b.name)));
+      return opt;
+    },
+    [campaignId]
+  );
 
   const patchEventData = useCallback(
     (nodeId: string, partial: Partial<PlannerEventNodeData>) => {
@@ -1236,9 +1334,56 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
     [onEdgesChange]
   );
 
-  const onNodeDragStart = useCallback(() => {
+  const onNodeDragStart = useCallback((_e: React.MouseEvent, node: Node) => {
     pushHistoryBeforeActionRef.current();
+    groupDragRef.current = null;
+    const fThreadId = focusedThreadIdRef.current;
+    if (!fThreadId) {
+      return;
+    }
+    const nodeData = node.data as PlannerEventNodeData;
+    if (nodeData.threadId !== fThreadId) {
+      return;
+    }
+    const threadNodes = nodesRef.current.filter(
+      (n) => n.type === "event" && (n.data as PlannerEventNodeData).threadId === fThreadId
+    );
+    if (threadNodes.length < 2) {
+      return;
+    }
+    groupDragRef.current = {
+      draggedNodeId: node.id,
+      initialPositions: Object.fromEntries(threadNodes.map((n) => [n.id, { ...n.position }]))
+    };
   }, []);
+
+  const onNodeDrag = useCallback(
+    (_e: React.MouseEvent, node: Node) => {
+      const gd = groupDragRef.current;
+      if (!gd || gd.draggedNodeId !== node.id) {
+        return;
+      }
+      const initPos = gd.initialPositions[node.id];
+      if (!initPos) {
+        return;
+      }
+      const dx = node.position.x - initPos.x;
+      const dy = node.position.y - initPos.y;
+      setNodes((nds) =>
+        nds.map((n) => {
+          if (n.id === node.id) {
+            return n;
+          }
+          const init = gd.initialPositions[n.id];
+          if (!init) {
+            return n;
+          }
+          return { ...n, position: { x: init.x + dx, y: init.y + dy } };
+        })
+      );
+    },
+    [setNodes]
+  );
 
   const onSelectionDragStart = useCallback(() => {
     pushHistoryBeforeActionRef.current();
@@ -1263,6 +1408,7 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
 
   const onNodeDragStop = useCallback(
     (_e: React.MouseEvent, node: Node) => {
+      groupDragRef.current = null;
       if (viewModeRef.current === "swimlane_character" && node.type === "event") {
         const d = node.data as PlannerEventNodeData;
         if (!d.ghostCharacterId || !d.ghostSourceId) {
@@ -1289,6 +1435,22 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
   const addEvent = useCallback(() => {
     pushHistoryBeforeActionRef.current();
     setNodes((nds) => [...nds, newEventNode(nds.length)]);
+  }, [setNodes]);
+
+  const handleGroupNodes = useCallback(() => {
+    pushHistoryBeforeActionRef.current();
+    const fThreadId = focusedThreadIdRef.current;
+    setNodes((nds) => {
+      if (!fThreadId) {
+        return compactPilotNodes(nds, edgesRef.current);
+      }
+      const threadNodes = nds.filter(
+        (n) => n.type === "event" && (n.data as PlannerEventNodeData).threadId === fThreadId
+      );
+      const compacted = compactPilotNodes(threadNodes, edgesRef.current);
+      const compactedById = new Map(compacted.map((n) => [n.id, n]));
+      return nds.map((n) => compactedById.get(n.id) ?? n);
+    });
   }, [setNodes]);
 
   const threadTimelineRows = useMemo(
@@ -1368,8 +1530,14 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
       campaignId,
       characterOptions,
       npcOptions,
+      locationOptions,
+      createNpcInline,
+      createLocationInline,
       closeEventDetails,
       createThreadForEvent,
+      focusedThreadId,
+      setFocusedThreadId,
+      getEventLabel,
       insertEventOnEdge,
       openEventDetails,
       patchEventData,
@@ -1383,8 +1551,13 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
       campaignId,
       characterOptions,
       npcOptions,
+      locationOptions,
+      createNpcInline,
+      createLocationInline,
       closeEventDetails,
       createThreadForEvent,
+      focusedThreadId,
+      getEventLabel,
       insertEventOnEdge,
       openEventDetails,
       patchEventData,
@@ -1481,6 +1654,14 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
                 Dodaj zdarzenie
               </Button>
             </Tooltip>
+            <Button
+              disabled={viewMode !== "freeform"}
+              onClick={handleGroupNodes}
+              size="sm"
+              variant="light"
+            >
+              Zgrupuj
+            </Button>
           </Group>
         </Box>
         <Box
@@ -1532,6 +1713,7 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
               onConnect={onConnect}
               onEdgesChange={onEdgesChangeWrapped}
               onMoveEnd={onMoveEnd}
+              onNodeDrag={onNodeDrag}
               onNodeDragStart={onNodeDragStart}
               onNodeDragStop={onNodeDragStop}
               onNodesChange={onNodesChange}

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -37,7 +38,7 @@ export async function createPlayerCharacter(
     level = n;
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -71,6 +72,18 @@ export async function createPlayerCharacter(
   if (insertErr) {
     return { error: insertErr.message ?? "Nie udało się utworzyć postaci." };
   }
+
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: user.id,
+    event: "player_character_created",
+    properties: {
+      campaign_id: campaignId,
+      character_name: name,
+      level,
+    },
+  });
+  await posthog.shutdown();
 
   revalidatePath(`/campaign/${campaignId}`, "layout");
   return {};

@@ -4,20 +4,21 @@ import { Box, Flex, NavLink } from "@mantine/core";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { use, type ReactNode } from "react";
 
 import { CampaignNavRail } from "@/components/app-shell/campaign-nav-rail";
 
 type CampaignSettingsLayoutProps = {
   children: ReactNode;
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export default function CampaignSettingsLayout({ children, params }: CampaignSettingsLayoutProps) {
+  const { id } = use(params);
   const pathname = usePathname();
-  const settingsHref = `/campaign/${params.id}/settings` as Route;
-  const invitationsHref = `/campaign/${params.id}/settings/invitations` as Route;
-  const onInvitations = pathname.startsWith(`/campaign/${params.id}/settings/invitations`);
+  const settingsHref = `/campaign/${id}/settings` as Route;
+  const invitationsHref = `/campaign/${id}/settings/invitations` as Route;
+  const onInvitations = pathname.startsWith(`/campaign/${id}/settings/invitations`);
 
   /** Wysokość treści w Main: viewport minus nagłówek AppShell i pionowy padding Main (zmienne z Mantine). */
   const settingsShellMinHeight =

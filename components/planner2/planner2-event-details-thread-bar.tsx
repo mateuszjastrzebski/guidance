@@ -31,7 +31,8 @@ type Planner2EventDetailsThreadBarProps = {
 };
 
 export function Planner2EventDetailsThreadBar({ eventNodeId, eventData: d }: Planner2EventDetailsThreadBarProps) {
-  const { assignThreadToEvent, campaignId, createThreadForEvent, threadOptions } = usePlanner2ReactFlowPilot();
+  const { assignThreadToEvent, campaignId, createThreadForEvent, getEventLabel, threadOptions } = usePlanner2ReactFlowPilot();
+  const eventLabel = d.threadId ? getEventLabel(eventNodeId) : undefined;
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [createThreadOpen, setCreateThreadOpen] = useState(false);
@@ -78,7 +79,7 @@ export function Planner2EventDetailsThreadBar({ eventNodeId, eventData: d }: Pla
 
   return (
     <>
-      <Group justify="space-between" mb={4} wrap="nowrap" w="100%">
+      <Group align="center" justify="space-between" mb={4} wrap="nowrap" w="100%">
         {d.threadLabel ? (
           <Group
             gap={4}
@@ -171,6 +172,11 @@ export function Planner2EventDetailsThreadBar({ eventNodeId, eventData: d }: Pla
             </Popover.Dropdown>
           </Popover>
         )}
+        {eventLabel !== undefined ? (
+          <Text c="dimmed" ff="monospace" fz="sm" style={{ flexShrink: 0 }}>
+            #{eventLabel}
+          </Text>
+        ) : null}
       </Group>
 
       <Modal

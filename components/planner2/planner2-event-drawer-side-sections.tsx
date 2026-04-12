@@ -18,25 +18,25 @@ import {
   UnstyledButton
 } from "@mantine/core";
 import { useClickOutside } from "@mantine/hooks";
-import { showNotification } from "@mantine/notifications";
 
 import {
   usePlanner2ReactFlowPilot,
-  type PlannerCharacterOption
+  type PlannerCharacterOption,
+  type PlannerLocationOption
 } from "@/components/planner2/planner2-react-flow-pilot-context";
 import {
+  IconExternalLink,
   IconHelp,
   IconMapPin,
   IconMask,
-  IconMessages,
   IconNotes,
-  IconCheck,
-  IconEyeOff,
   IconPackage,
-  IconTrash,
-  IconUsers
+  IconPlus,
+  IconTrash
 } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
+
+import { PlayerInfosSection } from "@/components/campaign/player-infos-section";
 
 export type EventDrawerMultiValueVariant = "places" | "items" | "notes";
 
@@ -183,10 +183,11 @@ export function EventDrawerMultiValueSection({ title, variant }: EventDrawerMult
   );
 }
 
+const LOCATION_ACCENT =
+  "light-dark(var(--mantine-color-teal-6), var(--mantine-color-teal-4))";
+
 const NPC_ACCENT =
   "light-dark(var(--mantine-color-gray-6), var(--mantine-color-gray-4))";
-const PLAYER_INFO_ACCENT =
-  "light-dark(var(--mantine-color-violet-6), var(--mantine-color-violet-4))";
 
 function npcInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -194,6 +195,237 @@ function npcInitials(name: string): string {
     return `${parts[0]!.slice(0, 1)}${parts[1]!.slice(0, 1)}`.toUpperCase();
   }
   return name.slice(0, 2).toUpperCase();
+}
+
+type EventDrawerLocationsSectionProps = {
+  eventNodeId: string;
+  locationIds: string[];
+};
+
+export function EventDrawerLocationsSection({
+  eventNodeId,
+  locationIds
+}: EventDrawerLocationsSectionProps) {
+  const { campaignId, locationOptions, createLocationInline, patchEventData } = usePlanner2ReactFlowPilot();
+  const [query, setQuery] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [highlighted, setHighlighted] = useState(0);
+  const [creating, setCreating] = useState(false);
+
+  const locationById = useMemo(() => new Map(locationOptions.map((l) => [l.id, l])), [locationOptions]);
+  const taken = useMemo(() => new Set(locationIds), [locationIds]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return locationOptions.filter((l) => {
+      if (taken.has(l.id)) return false;
+      if (!q) return true;
+      return l.name.toLowerCase().includes(q);
+    });
+  }, [locationOptions, query, taken]);
+
+  useEffect(() => {
+    setHighlighted(0);
+  }, [query, filtered.length]);
+
+  const addLocationId = useCallback(
+    (id: string) => {
+      if (taken.has(id)) return;
+      patchEventData(eventNodeId, { locationIds: [...locationIds, id] });
+      setQuery("");
+      setMenuOpen(false);
+    },
+    [eventNodeId, locationIds, patchEventData, taken]
+  );
+
+  const removeLocationId = useCallback(
+    (id: string) => {
+      const next = locationIds.filter((x) => x !== id);
+      patchEventData(eventNodeId, { locationIds: next.length > 0 ? next : undefined });
+    },
+    [eventNodeId, locationIds, patchEventData]
+  );
+
+  const handleCreateLocation = useCallback(async () => {
+    const name = query.trim();
+    if (!name || creating) return;
+    setCreating(true);
+    const opt = await createLocationInline(name);
+    setCreating(false);
+    if (opt) {
+      addLocationId(opt.id);
+    }
+  }, [addLocationId, createLocationInline, creating, query]);
+
+  const shellRef = useClickOutside(() => setMenuOpen(false));
+
+  const showCreateOption = query.trim().length > 0;
+  const totalItems = filtered.length + (showCreateOption ? 1 : 0);
+  const createOptionIndex = filtered.length;
+
+  const onInputKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (totalItems === 0) return;
+        setHighlighted((h) => Math.min(h + 1, totalItems - 1));
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (totalItems === 0) return;
+        setHighlighted((h) => Math.max(h - 1, 0));
+        return;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (showCreateOption && highlighted === createOptionIndex) {
+          void handleCreateLocation();
+          return;
+        }
+        const pick = filtered[highlighted] ?? filtered[0];
+        if (pick) addLocationId(pick.id);
+        return;
+      }
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+      }
+    },
+    [addLocationId, createOptionIndex, filtered, handleCreateLocation, highlighted, showCreateOption, totalItems]
+  );
+
+  const menuVisible = menuOpen && (filtered.length > 0 || showCreateOption);
+
+  return (
+    <Stack align="flex-start" gap="sm" w="100%">
+      <EventDrawerSectionHeading icon={IconMapPin} iconColor={LOCATION_ACCENT}>
+        Miejsca
+      </EventDrawerSectionHeading>
+      {locationIds.length > 0 ? (
+        <Stack gap={6} w="100%">
+          {locationIds.map((id) => {
+            const row = locationById.get(id);
+            const label = row?.name ?? `Lokacja (${id.slice(0, 8)}…)`;
+            return (
+              <Group gap="sm" justify="space-between" key={id} wrap="nowrap">
+                <Text lineClamp={1} size="md" style={{ flex: 1, minWidth: 0 }}>
+                  {label}
+                </Text>
+                <Group gap={2} wrap="nowrap">
+                  <Tooltip label="Otwórz szczegóły" withArrow>
+                    <ActionIcon
+                      aria-label={`Otwórz szczegóły: ${label}`}
+                      color="gray"
+                      component="a"
+                      href={`/campaign/${campaignId}/locations`}
+                      rel="noopener noreferrer"
+                      size="sm"
+                      target="_blank"
+                      variant="subtle"
+                    >
+                      <IconExternalLink size={14} />
+                    </ActionIcon>
+                  </Tooltip>
+                  <ActionIcon
+                    aria-label={`Usuń ${label} z eventu`}
+                    color="gray"
+                    onClick={() => removeLocationId(id)}
+                    size="sm"
+                    variant="subtle"
+                  >
+                    <IconTrash size={14} />
+                  </ActionIcon>
+                </Group>
+              </Group>
+            );
+          })}
+        </Stack>
+      ) : null}
+
+      <Box pos="relative" ref={shellRef} w="100%">
+        <TextInput
+          aria-autocomplete="list"
+          aria-expanded={menuVisible}
+          onChange={(e) => {
+            setQuery(e.currentTarget.value);
+            setMenuOpen(true);
+          }}
+          onFocus={() => setMenuOpen(true)}
+          onKeyDown={onInputKeyDown}
+          placeholder="Dodaj lub stwórz miejsce…"
+          size="md"
+          styles={{ input: { border: "none", borderBottom: "1px solid light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4))", borderRadius: 0, paddingLeft: 0, paddingRight: 0 } }}
+          value={query}
+          variant="unstyled"
+        />
+        {menuVisible ? (
+          <Paper
+            p={4}
+            radius="sm"
+            shadow="md"
+            style={{
+              left: 0,
+              maxHeight: 220,
+              overflow: "auto",
+              position: "absolute",
+              right: 0,
+              top: "100%",
+              zIndex: 400
+            }}
+            withBorder
+          >
+            <Stack gap={0}>
+              {filtered.map((l, i) => (
+                <UnstyledButton
+                  key={l.id}
+                  onClick={() => addLocationId(l.id)}
+                  onMouseEnter={() => setHighlighted(i)}
+                  p="xs"
+                  style={{
+                    backgroundColor:
+                      i === highlighted
+                        ? "light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))"
+                        : undefined,
+                    borderRadius: "var(--mantine-radius-sm)"
+                  }}
+                  type="button"
+                >
+                  <Text lineClamp={1} size="md">
+                    {l.name}
+                  </Text>
+                </UnstyledButton>
+              ))}
+              {showCreateOption ? (
+                <UnstyledButton
+                  disabled={creating}
+                  onClick={() => void handleCreateLocation()}
+                  onMouseEnter={() => setHighlighted(createOptionIndex)}
+                  p="xs"
+                  style={{
+                    backgroundColor:
+                      highlighted === createOptionIndex
+                        ? "light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))"
+                        : undefined,
+                    borderRadius: "var(--mantine-radius-sm)",
+                    borderTop: filtered.length > 0 ? "1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5))" : undefined,
+                    marginTop: filtered.length > 0 ? 4 : undefined
+                  }}
+                  type="button"
+                >
+                  <Group gap="xs" wrap="nowrap">
+                    <IconPlus size={14} style={{ flexShrink: 0 }} />
+                    <Text size="md">
+                      Stwórz <Text component="span" fw={700}>{query.trim()}</Text>
+                    </Text>
+                  </Group>
+                </UnstyledButton>
+              ) : null}
+            </Stack>
+          </Paper>
+        ) : null}
+      </Box>
+    </Stack>
+  );
 }
 
 type EventDrawerCharactersSectionProps = {
@@ -209,10 +441,11 @@ export function EventDrawerCharactersSection({
   eventThreadId,
   npcIds
 }: EventDrawerCharactersSectionProps) {
-  const { npcOptions, patchEventData } = usePlanner2ReactFlowPilot();
+  const { campaignId, npcOptions, createNpcInline, patchEventData } = usePlanner2ReactFlowPilot();
   const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
+  const [creating, setCreating] = useState(false);
 
   const pool = useMemo(() => {
     void eventThreadId;
@@ -264,28 +497,43 @@ export function EventDrawerCharactersSection({
     [eventNodeId, npcIds, patchEventData]
   );
 
+  const handleCreateNpc = useCallback(async () => {
+    const name = query.trim();
+    if (!name || creating) return;
+    setCreating(true);
+    const opt = await createNpcInline(name);
+    setCreating(false);
+    if (opt) {
+      addNpcId(opt.id);
+    }
+  }, [addNpcId, createNpcInline, creating, query]);
+
   const shellRef = useClickOutside(() => setMenuOpen(false));
+
+  const showCreateOption = query.trim().length > 0;
+  const totalItems = filtered.length + (showCreateOption ? 1 : 0);
+  const createOptionIndex = filtered.length;
 
   const onInputKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        if (filtered.length === 0) {
-          return;
-        }
-        setHighlighted((h) => Math.min(h + 1, filtered.length - 1));
+        if (totalItems === 0) return;
+        setHighlighted((h) => Math.min(h + 1, totalItems - 1));
         return;
       }
       if (e.key === "ArrowUp") {
         e.preventDefault();
-        if (filtered.length === 0) {
-          return;
-        }
+        if (totalItems === 0) return;
         setHighlighted((h) => Math.max(h - 1, 0));
         return;
       }
       if (e.key === "Enter") {
         e.preventDefault();
+        if (showCreateOption && highlighted === createOptionIndex) {
+          void handleCreateNpc();
+          return;
+        }
         const pick = filtered[highlighted] ?? filtered[0];
         if (pick) {
           addNpcId(pick.id);
@@ -296,8 +544,10 @@ export function EventDrawerCharactersSection({
         setMenuOpen(false);
       }
     },
-    [addNpcId, filtered, highlighted]
+    [addNpcId, createOptionIndex, filtered, handleCreateNpc, highlighted, showCreateOption, totalItems]
   );
+
+  const menuVisible = menuOpen && (filtered.length > 0 || showCreateOption);
 
   return (
     <Stack align="flex-start" gap="sm" w="100%">
@@ -331,566 +581,146 @@ export function EventDrawerCharactersSection({
                     {label}
                   </Text>
                 </Group>
-                <ActionIcon
-                  aria-label={`Usuń ${label} z eventu`}
-                  color="gray"
-                  onClick={() => removeNpcId(id)}
-                  size="sm"
-                  variant="subtle"
-                >
-                  <IconTrash size={14} />
-                </ActionIcon>
+                <Group gap={2} wrap="nowrap">
+                  <Tooltip label="Otwórz szczegóły" withArrow>
+                    <ActionIcon
+                      aria-label={`Otwórz szczegóły: ${label}`}
+                      color="gray"
+                      component="a"
+                      href={`/campaign/${campaignId}/npcs`}
+                      rel="noopener noreferrer"
+                      size="sm"
+                      target="_blank"
+                      variant="subtle"
+                    >
+                      <IconExternalLink size={14} />
+                    </ActionIcon>
+                  </Tooltip>
+                  <ActionIcon
+                    aria-label={`Usuń ${label} z eventu`}
+                    color="gray"
+                    onClick={() => removeNpcId(id)}
+                    size="sm"
+                    variant="subtle"
+                  >
+                    <IconTrash size={14} />
+                  </ActionIcon>
+                </Group>
               </Group>
             );
           })}
         </Stack>
       ) : null}
 
-      {pool.length === 0 ? (
-        <Text c="dimmed" size="md">
-          Brak NPC w kampanii — dodaj postacie w zakładce NPC.
-        </Text>
-      ) : (
-        <Box pos="relative" ref={shellRef} w="100%">
-          <TextInput
-            aria-autocomplete="list"
-            aria-expanded={menuOpen && filtered.length > 0}
-            onChange={(e) => {
-              setQuery(e.currentTarget.value);
-              setMenuOpen(true);
+      <Box pos="relative" ref={shellRef} w="100%">
+        <TextInput
+          aria-autocomplete="list"
+          aria-expanded={menuVisible}
+          onChange={(e) => {
+            setQuery(e.currentTarget.value);
+            setMenuOpen(true);
+          }}
+          onFocus={() => setMenuOpen(true)}
+          onKeyDown={onInputKeyDown}
+          placeholder="Dodaj lub stwórz NPC…"
+          size="md"
+          styles={{ input: { border: "none", borderBottom: "1px solid light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4))", borderRadius: 0, paddingLeft: 0, paddingRight: 0 } }}
+          value={query}
+          variant="unstyled"
+        />
+        {menuVisible ? (
+          <Paper
+            p={4}
+            radius="sm"
+            shadow="md"
+            style={{
+              left: 0,
+              maxHeight: 220,
+              overflow: "auto",
+              position: "absolute",
+              right: 0,
+              top: "100%",
+              zIndex: 400
             }}
-            onFocus={() => setMenuOpen(true)}
-            onKeyDown={onInputKeyDown}
-            placeholder={
-              pool.every((n) => taken.has(n.id))
-                ? "Wszyscy NPC z kampanii są już na liście"
-                : "Dodaj NPC…"
-            }
-            readOnly={pool.every((n) => taken.has(n.id))}
-            size="md"
-            styles={{ input: { border: "none", borderBottom: "1px solid light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4))", borderRadius: 0, paddingLeft: 0, paddingRight: 0 } }}
-            value={query}
-            variant="unstyled"
-          />
-          {menuOpen && filtered.length > 0 ? (
-            <Paper
-              p={4}
-              radius="sm"
-              shadow="md"
-              style={{
-                left: 0,
-                maxHeight: 220,
-                overflow: "auto",
-                position: "absolute",
-                right: 0,
-                top: "100%",
-                zIndex: 400
-              }}
-              withBorder
-            >
-              <Stack gap={0}>
-                {filtered.map((n, i) => (
-                  <UnstyledButton
-                    key={n.id}
-                    onClick={() => addNpcId(n.id)}
-                    onMouseEnter={() => setHighlighted(i)}
-                    p="xs"
-                    style={{
-                      backgroundColor:
-                        i === highlighted
-                          ? "light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))"
-                          : undefined,
-                      borderRadius: "var(--mantine-radius-sm)"
-                    }}
-                    type="button"
-                  >
-                    <Group gap="sm" wrap="nowrap">
-                      {n.portrait_url ? (
-                        <Image alt="" fit="cover" h={28} radius="xl" src={n.portrait_url} w={28} />
-                      ) : (
-                        <Avatar color="gray" radius="xl" size="sm">
-                          {npcInitials(n.name)}
-                        </Avatar>
-                      )}
-                      <Text lineClamp={1} size="md" style={{ flex: 1 }}>
-                        {n.name}
-                      </Text>
-                    </Group>
-                  </UnstyledButton>
-                ))}
-              </Stack>
-            </Paper>
-          ) : null}
-        </Box>
-      )}
+            withBorder
+          >
+            <Stack gap={0}>
+              {filtered.map((n, i) => (
+                <UnstyledButton
+                  key={n.id}
+                  onClick={() => addNpcId(n.id)}
+                  onMouseEnter={() => setHighlighted(i)}
+                  p="xs"
+                  style={{
+                    backgroundColor:
+                      i === highlighted
+                        ? "light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))"
+                        : undefined,
+                    borderRadius: "var(--mantine-radius-sm)"
+                  }}
+                  type="button"
+                >
+                  <Group gap="sm" wrap="nowrap">
+                    {n.portrait_url ? (
+                      <Image alt="" fit="cover" h={28} radius="xl" src={n.portrait_url} w={28} />
+                    ) : (
+                      <Avatar color="gray" radius="xl" size="sm">
+                        {npcInitials(n.name)}
+                      </Avatar>
+                    )}
+                    <Text lineClamp={1} size="md" style={{ flex: 1 }}>
+                      {n.name}
+                    </Text>
+                  </Group>
+                </UnstyledButton>
+              ))}
+              {showCreateOption ? (
+                <UnstyledButton
+                  disabled={creating}
+                  onClick={() => void handleCreateNpc()}
+                  onMouseEnter={() => setHighlighted(createOptionIndex)}
+                  p="xs"
+                  style={{
+                    backgroundColor:
+                      highlighted === createOptionIndex
+                        ? "light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))"
+                        : undefined,
+                    borderRadius: "var(--mantine-radius-sm)",
+                    borderTop: filtered.length > 0 ? "1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5))" : undefined,
+                    marginTop: filtered.length > 0 ? 4 : undefined
+                  }}
+                  type="button"
+                >
+                  <Group gap="xs" wrap="nowrap">
+                    <IconPlus size={14} style={{ flexShrink: 0 }} />
+                    <Text size="md">
+                      Stwórz <Text component="span" fw={700}>{query.trim()}</Text>
+                    </Text>
+                  </Group>
+                </UnstyledButton>
+              ) : null}
+            </Stack>
+          </Paper>
+        ) : null}
+      </Box>
     </Stack>
   );
 }
 
-const AVATAR_COLORS = ["violet", "cyan", "grape", "teal", "indigo"] as const;
-
-type PlayerInfoRow = {
-  body: string;
-  disclosedCharacterIds: string[];
-  id: string;
-  /** Zaznaczone ujawnione postacie — czerwony „Ukryj” cofa im ujawnienie. */
-  revokeSelectionIds: string[];
-  /** Wybrane przed kliknięciem „Ujawnij”; po wysłaniu znika i trafia do disclosed. */
-  selectedCharacterIds: string[];
-};
-
-type EventDrawerPlayerInfosSectionProps = {
-  campaignCharacters: PlannerCharacterOption[];
-};
-
-export function EventDrawerPlayerInfosSection({ campaignCharacters }: EventDrawerPlayerInfosSectionProps) {
-  const [rows, setRows] = useState<PlayerInfoRow[]>([]);
-
-  const addRow = useCallback(() => {
-    setRows((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        body: "",
-        disclosedCharacterIds: [],
-        revokeSelectionIds: [],
-        selectedCharacterIds: []
-      }
-    ]);
-  }, []);
-
-  const patchRow = useCallback(
-    (rowId: string, patch: Partial<Pick<PlayerInfoRow, "body">>) => {
-      setRows((prev) =>
-        prev.map((row) => (row.id === rowId ? { ...row, ...patch } : row))
-      );
-    },
-    []
-  );
-
-  const toggleSelectedCharacter = useCallback((rowId: string, characterId: string) => {
-    setRows((prev) =>
-      prev.map((row) => {
-        if (row.id !== rowId) {
-          return row;
-        }
-        if (row.disclosedCharacterIds.includes(characterId)) {
-          return row;
-        }
-        const has = row.selectedCharacterIds.includes(characterId);
-        return {
-          ...row,
-          revokeSelectionIds: [],
-          selectedCharacterIds: has
-            ? row.selectedCharacterIds.filter((c) => c !== characterId)
-            : [...row.selectedCharacterIds, characterId]
-        };
-      })
-    );
-  }, []);
-
-  const toggleRevokeSelection = useCallback((rowId: string, characterId: string) => {
-    setRows((prev) =>
-      prev.map((row) => {
-        if (row.id !== rowId) {
-          return row;
-        }
-        if (!row.disclosedCharacterIds.includes(characterId)) {
-          return row;
-        }
-        const has = row.revokeSelectionIds.includes(characterId);
-        return {
-          ...row,
-          revokeSelectionIds: has
-            ? row.revokeSelectionIds.filter((c) => c !== characterId)
-            : [...row.revokeSelectionIds, characterId],
-          selectedCharacterIds: []
-        };
-      })
-    );
-  }, []);
-
-  const commitRevoke = useCallback((rowId: string) => {
-    setRows((prev) =>
-      prev.map((row) => {
-        if (row.id !== rowId || row.revokeSelectionIds.length === 0) {
-          return row;
-        }
-        const drop = new Set(row.revokeSelectionIds);
-        return {
-          ...row,
-          disclosedCharacterIds: row.disclosedCharacterIds.filter((id) => !drop.has(id)),
-          revokeSelectionIds: []
-        };
-      })
-    );
-  }, []);
-
-  const commitDisclosure = useCallback((rowId: string) => {
-    let didCommit = false;
-    setRows((prev) => {
-      const row = prev.find((r) => r.id === rowId);
-      if (!row || row.selectedCharacterIds.length === 0) {
-        return prev;
-      }
-      didCommit = true;
-      return prev.map((r) => {
-        if (r.id !== rowId) {
-          return r;
-        }
-        const nextDisclosed = [...new Set([...r.disclosedCharacterIds, ...r.selectedCharacterIds])];
-        return {
-          ...r,
-          disclosedCharacterIds: nextDisclosed,
-          revokeSelectionIds: [],
-          selectedCharacterIds: []
-        };
-      });
-    });
-    if (didCommit) {
-      showNotification({
-        autoClose: 6000,
-        color: "teal",
-        message: (
-          <Stack gap={6}>
-            <Text size="md">Informacja została wysłana (symulacja).</Text>
-            <Text c="dimmed" size="md">
-              To tylko placeholder toasta — trzeba dorobić prawdziwe wysyłanie do graczy.
-            </Text>
-          </Stack>
-        ),
-        title: "Informacje wysłane"
-      });
-    }
-  }, []);
-
-  const removeRow = useCallback((rowId: string) => {
-    setRows((prev) => prev.filter((r) => r.id !== rowId));
-  }, []);
-
-  const selectAllInRow = useCallback(
-    (rowId: string) => {
-      setRows((prev) =>
-        prev.map((row) => {
-          if (row.id !== rowId) {
-            return row;
-          }
-          const inCampaign = (id: string) => campaignCharacters.some((c) => c.id === id);
-          if (row.revokeSelectionIds.length > 0) {
-            const disclosed = row.disclosedCharacterIds.filter(inCampaign);
-            const allPicked =
-              disclosed.length > 0 && disclosed.every((id) => row.revokeSelectionIds.includes(id));
-            return {
-              ...row,
-              revokeSelectionIds: allPicked ? [] : [...disclosed],
-              selectedCharacterIds: []
-            };
-          }
-          const undisclosed = campaignCharacters
-            .filter((c) => !row.disclosedCharacterIds.includes(c.id))
-            .map((c) => c.id);
-          if (undisclosed.length > 0) {
-            const allPicked =
-              undisclosed.length > 0 && undisclosed.every((id) => row.selectedCharacterIds.includes(id));
-            return {
-              ...row,
-              revokeSelectionIds: [],
-              selectedCharacterIds: allPicked ? [] : [...undisclosed]
-            };
-          }
-          const disclosed = row.disclosedCharacterIds.filter(inCampaign);
-          const allRevokePicked =
-            disclosed.length > 0 && disclosed.every((id) => row.revokeSelectionIds.includes(id));
-          return {
-            ...row,
-            revokeSelectionIds: allRevokePicked ? [] : [...disclosed],
-            selectedCharacterIds: []
-          };
-        })
-      );
-    },
-    [campaignCharacters]
-  );
-
-  return (
-    <Stack align="flex-start" gap="sm">
-      <EventDrawerSectionHeading icon={IconMessages} iconColor={PLAYER_INFO_ACCENT}>
-        Informacje dla graczy
-      </EventDrawerSectionHeading>
-      {rows.length > 0 ? (
-        <Stack gap="sm" w="100%">
-          {rows.map((row) => (
-            <PlayerInfoCard
-              key={row.id}
-              campaignCharacters={campaignCharacters}
-              onBodyChange={(body) => patchRow(row.id, { body })}
-              onCommitDisclose={() => commitDisclosure(row.id)}
-              onCommitRevoke={() => commitRevoke(row.id)}
-              onRemove={() => removeRow(row.id)}
-              onToggleCharacter={(characterId) => toggleSelectedCharacter(row.id, characterId)}
-              onSelectAll={() => selectAllInRow(row.id)}
-              onToggleRevokeCharacter={(characterId) => toggleRevokeSelection(row.id, characterId)}
-              row={row}
-            />
-          ))}
-        </Stack>
-      ) : null}
-      <Button aria-label="Dodaj informację dla graczy" onClick={addRow} {...drawerPrimaryOutlineButtonProps}>
-        Dodaj informację
-      </Button>
-    </Stack>
-  );
-}
-
-function PlayerInfoCard({
+function EventDrawerPlayerInfosSection({
   campaignCharacters,
-  onBodyChange,
-  onCommitDisclose,
-  onCommitRevoke,
-  onRemove,
-  onSelectAll,
-  onToggleCharacter,
-  onToggleRevokeCharacter,
-  row
+  eventNodeId
 }: {
   campaignCharacters: PlannerCharacterOption[];
-  onBodyChange: (body: string) => void;
-  onCommitDisclose: () => void;
-  onCommitRevoke: () => void;
-  onRemove: () => void;
-  onSelectAll: () => void;
-  onToggleCharacter: (characterId: string) => void;
-  onToggleRevokeCharacter: (characterId: string) => void;
-  row: PlayerInfoRow;
+  eventNodeId: string;
 }) {
-  const hasPendingSelection = row.selectedCharacterIds.length > 0;
-  const hasRevokeSelection = row.revokeSelectionIds.length > 0;
-  const hasCharacters = campaignCharacters.length > 0;
-  const canDisclose = hasPendingSelection && hasCharacters && !hasRevokeSelection;
-  const canRevoke = hasRevokeSelection && hasCharacters;
-
-  const undisclosedIds = campaignCharacters
-    .filter((c) => !row.disclosedCharacterIds.includes(c.id))
-    .map((c) => c.id);
-  const disclosedInCampaign = row.disclosedCharacterIds.filter((id) =>
-    campaignCharacters.some((c) => c.id === id)
-  );
-  const selectAllDisabled =
-    !hasCharacters ||
-    (hasRevokeSelection
-      ? disclosedInCampaign.length === 0
-      : undisclosedIds.length === 0 && disclosedInCampaign.length === 0);
-  const selectAllTooltip = !hasCharacters
-    ? ""
-    : hasRevokeSelection
-      ? disclosedInCampaign.length === 0
-        ? "Brak ujawnionych postaci"
-        : "Zaznacz lub odznacz wszystkie ujawnione postacie (do „Ukryj”)"
-      : undisclosedIds.length > 0
-        ? "Zaznacz lub odznacz wszystkie postacie jeszcze bez ujawnienia"
-        : "Wszystkie mają ujawnienie — zaznacz lub odznacz wszystkich do cofnięcia („Ukryj”)";
-
+  const { campaignId } = usePlanner2ReactFlowPilot();
   return (
-    <Stack align="flex-start" gap="sm">
-      <Group align="flex-start" gap="xs" wrap="nowrap" w="100%">
-        <Textarea
-          autosize
-          flex={1}
-          maxRows={12}
-          miw={0}
-          minRows={3}
-          onChange={(e) => onBodyChange(e.currentTarget.value)}
-          placeholder="Treść informacji dla wybranych postaci…"
-          resize="none"
-          size="md"
-          styles={{ root: { flex: 1, minWidth: 0 } }}
-          value={row.body}
-        />
-        <ActionIcon
-          aria-label="Usuń tę informację"
-          color="gray"
-          mt={4}
-          onClick={onRemove}
-          size="sm"
-          style={{ flexShrink: 0 }}
-          variant="subtle"
-        >
-          <IconTrash size={14} />
-        </ActionIcon>
-      </Group>
-      <Group align="center" gap="md" justify="flex-start" wrap="wrap" w="100%">
-        {!hasCharacters ? (
-          <Text c="dimmed" size="md">
-            Brak postaci w kampanii — dodaj postacie, żeby móc wybierać ujawnienia.
-          </Text>
-        ) : (
-          <Tooltip label={selectAllTooltip} withArrow>
-            <Box component="span" display="inline-block">
-              <Button
-                aria-label={selectAllTooltip}
-                disabled={selectAllDisabled}
-                onClick={onSelectAll}
-                {...drawerPrimaryOutlineButtonProps}
-              >
-                Wszyscy
-              </Button>
-            </Box>
-          </Tooltip>
-        )}
-        {campaignCharacters.map((c, i) => {
-          const disclosed = row.disclosedCharacterIds.includes(c.id);
-          const selected = row.selectedCharacterIds.includes(c.id);
-          const revokeSelected = row.revokeSelectionIds.includes(c.id);
-          const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
-
-          const avatarWithOverlay = (
-            <Box style={{ display: "inline-block", lineHeight: 0, position: "relative" }}>
-              <Avatar
-                color={color}
-                radius="xl"
-                size="sm"
-                styles={{
-                  root: {
-                    cursor: "pointer",
-                    opacity: disclosed ? (revokeSelected ? 0.92 : 0.42) : 1,
-                    outline: disclosed
-                      ? revokeSelected
-                        ? "2px solid light-dark(var(--mantine-color-red-6), var(--mantine-color-red-4))"
-                        : "2px solid light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3))"
-                      : selected
-                        ? "2px solid light-dark(var(--mantine-color-teal-6), var(--mantine-color-teal-4))"
-                        : "2px solid transparent",
-                    outlineOffset: 2,
-                    transition: "opacity 120ms ease, outline-color 120ms ease, box-shadow 120ms ease, transform 100ms ease",
-                    ...(selected && !disclosed
-                      ? {
-                          boxShadow:
-                            "0 0 0 1px light-dark(var(--mantine-color-teal-3), var(--mantine-color-teal-8))"
-                        }
-                      : {}),
-                    ...(disclosed && revokeSelected
-                      ? {
-                          boxShadow:
-                            "0 0 0 1px light-dark(var(--mantine-color-red-4), var(--mantine-color-red-7))"
-                        }
-                      : {}),
-                    "&:hover": {
-                      transform: "scale(1.06)"
-                    }
-                  }
-                }}
-              >
-                {npcInitials(c.name)}
-              </Avatar>
-              {disclosed && !revokeSelected ? (
-                <Box
-                  aria-hidden
-                  style={{
-                    alignItems: "center",
-                    backgroundColor: "light-dark(var(--mantine-color-teal-6), var(--mantine-color-teal-5))",
-                    border: "2px solid var(--mantine-color-body)",
-                    borderRadius: 3,
-                    bottom: -2,
-                    boxSizing: "border-box",
-                    display: "flex",
-                    height: 16,
-                    justifyContent: "center",
-                    position: "absolute",
-                    right: -2,
-                    width: 16
-                  }}
-                >
-                  <IconCheck color="var(--mantine-color-white)" size={10} stroke={3} />
-                </Box>
-              ) : null}
-            </Box>
-          );
-
-          return disclosed ? (
-            <Tooltip
-              key={c.id}
-              label={`${c.name} — kliknij, aby ${revokeSelected ? "odznaczyć" : "wybrać"} do cofnięcia ujawnienia („Ukryj”)`}
-              withArrow
-            >
-              <UnstyledButton
-                aria-label={`${revokeSelected ? "Odznacz" : "Wybierz"} postać ${c.name} do ukrycia informacji`}
-                aria-pressed={revokeSelected}
-                onClick={() => onToggleRevokeCharacter(c.id)}
-                style={{
-                  borderRadius: "var(--mantine-radius-xl)",
-                  lineHeight: 0,
-                  padding: 0
-                }}
-                type="button"
-              >
-                {avatarWithOverlay}
-              </UnstyledButton>
-            </Tooltip>
-          ) : (
-            <Tooltip
-              key={c.id}
-              label={`${c.name} — kliknij, aby ${selected ? "odznaczyć" : "wybrać"} przed „Ujawnij”`}
-              withArrow
-            >
-              <UnstyledButton
-                aria-label={`${selected ? "Odznacz" : "Wybierz"} postać ${c.name} do ujawnienia`}
-                aria-pressed={selected}
-                onClick={() => onToggleCharacter(c.id)}
-                style={{
-                  borderRadius: "var(--mantine-radius-xl)",
-                  lineHeight: 0,
-                  padding: 0
-                }}
-                type="button"
-              >
-                {avatarWithOverlay}
-              </UnstyledButton>
-            </Tooltip>
-          );
-        })}
-      </Group>
-      {canRevoke ? (
-        <Button
-          aria-label="Cofnij ujawnienie informacji wybranym postaciom"
-          color="red"
-          disabled={!hasCharacters}
-          leftSection={<IconEyeOff size={16} />}
-          onClick={() => {
-            if (!canRevoke) {
-              return;
-            }
-            onCommitRevoke();
-          }}
-          size="md"
-          variant="outline"
-        >
-          Ukryj
-        </Button>
-      ) : (
-        <Button
-          aria-label={
-            !hasCharacters
-              ? "Brak postaci w kampanii"
-              : canDisclose
-                ? "Ujawnij informację wybranym postaciom"
-                : "Wybierz co najmniej jedną postać, której jeszcze nie ujawniono"
-          }
-          color={canDisclose ? "violet" : "gray"}
-          disabled={!canDisclose || !hasCharacters}
-          leftSection={<IconUsers size={16} />}
-          onClick={() => {
-            if (!canDisclose) {
-              return;
-            }
-            onCommitDisclose();
-          }}
-          size="md"
-          variant="outline"
-        >
-          Ujawnij
-        </Button>
-      )}
-    </Stack>
+    <PlayerInfosSection
+      campaignId={campaignId}
+      campaignCharacters={campaignCharacters}
+      entityRef={{ type: 'event' as const, id: eventNodeId }}
+    />
   );
 }
 
@@ -899,6 +729,7 @@ type Planner2EventDrawerSideSectionsProps = {
   dlaczego: string;
   eventNodeId: string;
   eventThreadId?: string;
+  locationIds: string[];
   npcIds: string[];
   onDlaczegoChange: (value: string) => void;
 };
@@ -908,6 +739,7 @@ export function Planner2EventDrawerSideSections({
   dlaczego,
   eventNodeId,
   eventThreadId,
+  locationIds,
   npcIds,
   onDlaczegoChange
 }: Planner2EventDrawerSideSectionsProps) {
@@ -915,7 +747,7 @@ export function Planner2EventDrawerSideSections({
     <Stack align="flex-start" style={{ gap: "2.5rem" }} w="100%">
       <EventDrawerDlaczegoSection onChange={onDlaczegoChange} value={dlaczego} />
       <Divider w="100%" />
-      <EventDrawerMultiValueSection title="Miejsca" variant="places" />
+      <EventDrawerLocationsSection eventNodeId={eventNodeId} locationIds={locationIds} />
       <Divider w="100%" />
       <EventDrawerMultiValueSection title="Rekwizyty" variant="items" />
       <Divider w="100%" />
@@ -925,7 +757,7 @@ export function Planner2EventDrawerSideSections({
         npcIds={npcIds}
       />
       <Divider w="100%" />
-      <EventDrawerPlayerInfosSection campaignCharacters={campaignCharacters} />
+      <EventDrawerPlayerInfosSection campaignCharacters={campaignCharacters} eventNodeId={eventNodeId} />
     </Stack>
   );
 }

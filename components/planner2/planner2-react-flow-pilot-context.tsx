@@ -31,18 +31,30 @@ export type PlannerNpcOption = {
   portrait_url: string | null;
 };
 
+export type PlannerLocationOption = {
+  id: string;
+  name: string;
+};
+
 export type Planner2ReactFlowPilotContextValue = {
   addNodeFromNode: (sourceId: string, spec: AddNodeFromNodeSpec) => void;
   assignThreadToEvent: (nodeId: string, thread: PlannerThreadOption | null) => void;
   campaignId: string;
   characterOptions: PlannerCharacterOption[];
   npcOptions: PlannerNpcOption[];
+  locationOptions: PlannerLocationOption[];
+  createNpcInline: (name: string) => Promise<PlannerNpcOption | null>;
+  createLocationInline: (name: string) => Promise<PlannerLocationOption | null>;
   closeEventDetails: () => void;
   createThreadForEvent: (
     nodeId: string,
     name: string,
     color: string
   ) => Promise<{ error?: string; thread?: PlannerThreadOption }>;
+  focusedThreadId: string | null;
+  setFocusedThreadId: (id: string | null) => void;
+  /** Zwraca etykietę numeryczną eventu w jego wątku, np. "3" lub "3a". */
+  getEventLabel: (nodeId: string) => string | undefined;
   insertEventOnEdge: (edge: Edge) => void;
   openEventDetails: (nodeId: string) => void;
   patchEventData: (nodeId: string, partial: Partial<PlannerEventNodeData>) => void;

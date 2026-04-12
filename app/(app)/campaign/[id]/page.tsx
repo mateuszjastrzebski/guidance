@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 
 type CampaignDashboardPageProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
-export default function CampaignDashboardPage({ params }: CampaignDashboardPageProps) {
-  redirect(`/campaign/${params.id}/planner-2`);
+export default async function CampaignDashboardPage({ params }: CampaignDashboardPageProps) {
+  const { id } = await params;
+  redirect(`/campaign/${id}/planner-2`);
 }

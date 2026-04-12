@@ -8,11 +8,12 @@ import { MOCK_DEMO_PLAYER_CHARACTERS } from "@/lib/mocks/demo-campaign-roster";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type PlayerCharactersRouteProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export default async function PlayerCharactersRoute({ params }: PlayerCharactersRouteProps) {
-  const supabase = createSupabaseServerClient();
+  const { id: campaignId } = await params;
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -20,8 +21,6 @@ export default async function PlayerCharactersRoute({ params }: PlayerCharacters
   if (!user) {
     redirect("/login");
   }
-
-  const campaignId = params.id;
 
   const { data: memberRow } = await supabase
     .from("campaign_members")

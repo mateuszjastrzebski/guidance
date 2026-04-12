@@ -1,6 +1,7 @@
 "use server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -22,7 +23,7 @@ export async function listQuestsForBoard(campaignId: string): Promise<ListQuests
     return { ok: false, error: "Nieprawidłowa kampania." };
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -53,7 +54,7 @@ export async function createQuestForBoard(
     return { ok: false, error: "Nieprawidłowa kampania." };
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -79,6 +80,18 @@ export async function createQuestForBoard(
     return { ok: false, error: error?.message ?? "Nie udało się utworzyć wątku." };
   }
 
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: user.id,
+    event: "quest_created",
+    properties: {
+      campaign_id: campaignId,
+      quest_id: data.id,
+      quest_name: data.name,
+    },
+  });
+  await posthog.shutdown();
+
   return { ok: true, id: data.id, name: data.name };
 }
 
@@ -96,7 +109,7 @@ export async function linkQuests(
     return { ok: false, error: "Ten sam wątek." };
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -129,6 +142,18 @@ export async function linkQuests(
     return { ok: false, error: error.message };
   }
 
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: user.id,
+    event: "quests_linked",
+    properties: {
+      campaign_id: campaignId,
+      from_quest_id: fromQuestId,
+      to_quest_id: toQuestId,
+    },
+  });
+  await posthog.shutdown();
+
   return { ok: true };
 }
 
@@ -144,7 +169,7 @@ export async function getQuestForBoard(
     return { ok: false, error: "Nieprawidłowe identyfikatory." };
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -183,7 +208,7 @@ export async function updateQuestForBoard(
     return { ok: false, error: "Nazwa nie może być pusta." };
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -203,6 +228,18 @@ export async function updateQuestForBoard(
   if (error) {
     return { ok: false, error: error.message };
   }
+
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: user.id,
+    event: "quest_updated",
+    properties: {
+      campaign_id: campaignId,
+      quest_id: questId,
+      quest_name: title,
+    },
+  });
+  await posthog.shutdown();
 
   return { ok: true };
 }

@@ -42,6 +42,8 @@ export type PlannerEventNodeData = {
   isPlacementPreview?: boolean;
   /** NPC przypięci do eventu (panel szczegółów), kolejność = kolejność na liście. */
   npcIds?: string[];
+  /** Lokacje przypięte do eventu (panel szczegółów), kolejność = kolejność na liście. */
+  locationIds?: string[];
   threadColor?: string;
   threadId?: string;
   threadLabel?: string;
@@ -225,6 +227,15 @@ export function normalizePlannerEventNodeData(raw: unknown): PlannerEventNodeDat
     }
   }
 
+  const locationIdsRaw = r.locationIds;
+  let locationIds: string[] | undefined;
+  if (Array.isArray(locationIdsRaw)) {
+    locationIds = locationIdsRaw.filter((x): x is string => typeof x === "string");
+    if (locationIds.length === 0) {
+      locationIds = undefined;
+    }
+  }
+
   return {
     characterIds,
     co: typeof r.co === "string" ? r.co : "",
@@ -236,7 +247,8 @@ export function normalizePlannerEventNodeData(raw: unknown): PlannerEventNodeDat
     threadId: typeof r.threadId === "string" ? r.threadId : undefined,
     threadLabel: typeof r.threadLabel === "string" ? r.threadLabel : undefined,
     title: typeof r.title === "string" ? r.title : "",
-    npcIds
+    npcIds,
+    locationIds
   };
 }
 

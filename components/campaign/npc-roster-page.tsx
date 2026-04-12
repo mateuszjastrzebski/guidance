@@ -5,11 +5,14 @@ import {
   Box,
   Button,
   Container,
+  Divider,
+  Drawer,
   Group,
   Image,
   Modal,
   Paper,
   Stack,
+  Tabs,
   Text,
   TextInput,
   Textarea,
@@ -21,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition, type FormEvent } from "react";
 
 import { createNpc } from "@/app/(app)/campaign/[id]/npcs/actions";
+import { PlayerInfosSection } from "@/components/campaign/player-infos-section";
 
 export type NpcListItem = {
   id: string;
@@ -41,6 +45,7 @@ function initials(name: string) {
 type NpcRosterPageProps = {
   campaignId: string;
   canAddNpc: boolean;
+  campaignCharacters: { id: string; name: string }[];
   npcs: NpcListItem[];
   emptyMessage: string;
   errorMessage?: string | null;
@@ -49,6 +54,7 @@ type NpcRosterPageProps = {
 export function NpcRosterPage({
   campaignId,
   canAddNpc,
+  campaignCharacters,
   npcs,
   emptyMessage,
   errorMessage
@@ -59,6 +65,21 @@ export function NpcRosterPage({
   const [addOpened, { open: openAdd, close: closeAdd }] = useDisclosure(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Details drawer
+  const [detailsNpc, setDetailsNpc] = useState<NpcListItem | null>(null);
+  const [detailsTab, setDetailsTab] = useState<string>("info");
+  const [detailsName, setDetailsName] = useState("");
+  const [detailsDescription, setDetailsDescription] = useState("");
+
+  const openDetails = useCallback((npc: NpcListItem) => {
+    setDetailsNpc(npc);
+    setDetailsName(npc.name);
+    setDetailsDescription(npc.description ?? "");
+    setDetailsTab("info");
+  }, []);
+
+  const closeDetails = useCallback(() => setDetailsNpc(null), []);
 
   const onAddSubmit = useCallback(
     (e: FormEvent<HTMLFormElement>) => {
@@ -92,6 +113,7 @@ export function NpcRosterPage({
           ) : null}
         </Group>
 
+        {/* Add NPC modal */}
         <Modal
           centered
           onClose={() => {
@@ -131,6 +153,78 @@ export function NpcRosterPage({
           </form>
         </Modal>
 
+        {/* Details drawer */}
+        <Drawer
+          onClose={closeDetails}
+          opened={detailsNpc !== null}
+          padding="lg"
+          position="right"
+          size="md"
+          title={detailsNpc?.name ?? "Szczegóły NPC"}
+        >
+          {detailsNpc ? (
+            <Tabs value={detailsTab} onChange={(v) => setDetailsTab(v ?? "info")}>
+              <Tabs.List>
+                <Tabs.Tab value="info">Info</Tabs.Tab>
+                <Tabs.Tab value="player-infos">Informacje dla graczy</Tabs.Tab>
+              </Tabs.List>
+
+              <Tabs.Panel value="info" pt="md">
+                <Stack gap="md">
+                  <Group gap="md" wrap="nowrap">
+                    {detailsNpc.portrait_url ? (
+                      <Image
+                        alt=""
+                        fit="cover"
+                        h={80}
+                        radius="md"
+                        src={detailsNpc.portrait_url}
+                        w={64}
+                      />
+                    ) : (
+                      <Avatar color="gray" radius="md" size="lg">
+                        {initials(detailsNpc.name)}
+                      </Avatar>
+                    )}
+                    <Stack gap={4} style={{ flex: 1 }}>
+                      <Text fw={600} size="lg">{detailsNpc.name}</Text>
+                      {detailsNpc.level != null ? (
+                        <Text c="dimmed" size="sm">Poziom {detailsNpc.level}</Text>
+                      ) : null}
+                    </Stack>
+                  </Group>
+                  <Divider />
+                  <TextInput
+                    label="Nazwa"
+                    onChange={(e) => setDetailsName(e.currentTarget.value)}
+                    value={detailsName}
+                  />
+                  <Textarea
+                    autosize
+                    label="Opis"
+                    maxRows={8}
+                    minRows={3}
+                    onChange={(e) => setDetailsDescription(e.currentTarget.value)}
+                    value={detailsDescription}
+                  />
+                  <Text c="dimmed" size="xs">
+                    Edycja opisu — zapis przez odświeżenie strony (wkrótce auto-save).
+                  </Text>
+                </Stack>
+              </Tabs.Panel>
+
+              <Tabs.Panel value="player-infos" pt="md">
+                <PlayerInfosSection
+                  campaignId={campaignId}
+                  campaignCharacters={campaignCharacters}
+                  entityRef={{ type: "npc", id: detailsNpc.id }}
+                />
+              </Tabs.Panel>
+            </Tabs>
+          ) : null}
+        </Drawer>
+
+        {/* NPC list */}
         {errorMessage ? (
           <Text c="red" size="sm">
             {errorMessage}
@@ -198,11 +292,9 @@ export function NpcRosterPage({
                       </Text>
                     ) : null}
                     <Group gap="xs" mt="xs">
-                      <Tooltip label="Wkrótce">
-                        <Button disabled size="compact-sm" variant="light">
-                          Szczegóły
-                        </Button>
-                      </Tooltip>
+                      <Button onClick={() => openDetails(n)} size="compact-sm" variant="light">
+                        Szczegóły
+                      </Button>
                       <Tooltip label="Wkrótce">
                         <Button disabled size="compact-sm" variant="light">
                           Notatki MG

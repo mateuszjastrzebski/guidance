@@ -6,13 +6,14 @@ const WHITEBOARD_VIEWPORT_H =
   "calc(100dvh - var(--app-shell-header-offset, 3.5rem) - var(--app-shell-footer-offset, 0rem))";
 
 type Planner2PageProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
-export default function Planner2Page({ params }: Planner2PageProps) {
+export default async function Planner2Page({ params }: Planner2PageProps) {
+  const { id } = await params;
   return (
     <Box style={{ height: WHITEBOARD_VIEWPORT_H, minHeight: WHITEBOARD_VIEWPORT_H, width: "100%" }}>
-      <Planner2PlannerModeTabs campaignId={params.id} viewportHeight={WHITEBOARD_VIEWPORT_H} />
+      <Planner2PlannerModeTabs campaignId={id} viewportHeight={WHITEBOARD_VIEWPORT_H} />
     </Box>
   );
 }

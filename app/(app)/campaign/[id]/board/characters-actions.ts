@@ -19,7 +19,7 @@ export async function listCharactersForBoard(campaignId: string): Promise<ListCh
     return { ok: false, error: "Nieprawidłowa kampania." };
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();

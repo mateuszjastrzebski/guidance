@@ -87,6 +87,7 @@ export function Planner2EventDetailsDrawer({
                   dlaczego={eventData.dlaczego}
                   eventNodeId={eventNodeId}
                   eventThreadId={eventData.threadId}
+                  locationIds={eventData.locationIds ?? []}
                   npcIds={eventData.npcIds ?? []}
                   onDlaczegoChange={onEventDlaczegoChange}
                 />

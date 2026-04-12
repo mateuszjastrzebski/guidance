@@ -7,11 +7,12 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type CampaignLayoutProps = {
   children: ReactNode;
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export default async function CampaignLayout({ children, params }: CampaignLayoutProps) {
-  const supabase = createSupabaseServerClient();
+  const { id: campaignId } = await params;
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -23,7 +24,7 @@ export default async function CampaignLayout({ children, params }: CampaignLayou
   const { data: campaign, error } = await supabase
     .from("campaigns")
     .select("id, name, fabula_kind")
-    .eq("id", params.id)
+    .eq("id", campaignId)
     .single();
 
   if (error || !campaign) {
