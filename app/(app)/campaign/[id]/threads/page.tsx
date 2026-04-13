@@ -16,11 +16,12 @@ function asUuidArray(v: unknown): string[] {
 }
 
 type ThreadsRouteProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export default async function ThreadsRoute({ params }: ThreadsRouteProps) {
-  const supabase = createSupabaseServerClient();
+  const { id: campaignId } = await params;
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -28,8 +29,6 @@ export default async function ThreadsRoute({ params }: ThreadsRouteProps) {
   if (!user) {
     redirect("/login");
   }
-
-  const campaignId = params.id;
 
   const { data: memberRow } = await supabase
     .from("campaign_members")

@@ -4,11 +4,12 @@ import { NpcRosterPage, type NpcListItem } from "@/components/campaign/npc-roste
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type NpcsRouteProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export default async function NpcsRoute({ params }: NpcsRouteProps) {
-  const supabase = createSupabaseServerClient();
+  const { id: campaignId } = await params;
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -16,8 +17,6 @@ export default async function NpcsRoute({ params }: NpcsRouteProps) {
   if (!user) {
     redirect("/login");
   }
-
-  const campaignId = params.id;
 
   const { data: memberRow } = await supabase
     .from("campaign_members")
@@ -28,16 +27,24 @@ export default async function NpcsRoute({ params }: NpcsRouteProps) {
 
   const isGm = memberRow?.role === "gm";
 
-  const { data: rows, error } = await supabase
-    .from("npcs")
-    .select("id, name, description, level, portrait_url")
-    .eq("campaign_id", campaignId)
-    .order("name", { ascending: true });
+  const [{ data: rows, error }, { data: characterRows }] = await Promise.all([
+    supabase
+      .from("npcs")
+      .select("id, name, description, level, portrait_url")
+      .eq("campaign_id", campaignId)
+      .order("name", { ascending: true }),
+    supabase
+      .from("characters")
+      .select("id, name")
+      .eq("campaign_id", campaignId)
+      .order("name", { ascending: true })
+  ]);
 
   if (error) {
     return (
       <NpcRosterPage
         campaignId={campaignId}
+        campaignCharacters={[]}
         canAddNpc={isGm}
         emptyMessage=""
         errorMessage={`Nie udało się wczytać NPC: ${error.message}`}
@@ -54,6 +61,8 @@ export default async function NpcsRoute({ params }: NpcsRouteProps) {
     portrait_url: r.portrait_url
   }));
 
+  const campaignCharacters = (characterRows ?? []).map((c) => ({ id: c.id, name: c.name }));
+
   const emptyMessage = isGm
     ? "Brak NPC w tej kampanii. Dodaj pierwszego lub uruchom migracje z przykładowymi postaciami."
     : "Nie ma jeszcze NPC widocznych w tej kampanii.";
@@ -61,6 +70,7 @@ export default async function NpcsRoute({ params }: NpcsRouteProps) {
   return (
     <NpcRosterPage
       campaignId={campaignId}
+      campaignCharacters={campaignCharacters}
       canAddNpc={isGm}
       emptyMessage={emptyMessage}
       npcs={npcs}

@@ -203,3 +203,104 @@ export function spreadPilotNodesAfterInsert(
 
   return list;
 }
+
+/**
+ * Zwija wszystkie węzły do kompaktowego układu warstwowego (kolumny = głębokość w grafie).
+ * Węzły bez krawędzi wchodzących trafiają do kolumny 0, ich następniki do kolejnych kolumn.
+ * Wewnątrz każdej kolumny węzły są posortowane według oryginalnej pozycji Y.
+ * Wynik jest wyśrodkowany na centroidzie bieżących pozycji.
+ */
+export function compactPilotNodes(
+  nodes: PlannerPilotNode[],
+  edges: { source: string; target: string }[]
+): PlannerPilotNode[] {
+  if (nodes.length === 0) return nodes;
+
+  const gap = PLANNER_PILOT_NODE_GAP;
+  const colStep = PLANNER_EVENT_OUTER_PX.w + gap;
+  const rowStep = PLANNER_EVENT_OUTER_PX.h + gap;
+
+  // Centroid – użyjemy go do wyśrodkowania wynikowego układu
+  const cx = nodes.reduce((s, n) => s + n.position.x, 0) / nodes.length;
+  const cy = nodes.reduce((s, n) => s + n.position.y, 0) / nodes.length;
+
+  // Zbuduj graf skierowany (tylko krawędzie między węzłami z listy)
+  const nodeIdSet = new Set(nodes.map((n) => n.id));
+  const children = new Map<string, string[]>();
+  const inDegree = new Map<string, number>();
+
+  for (const n of nodes) {
+    children.set(n.id, []);
+    inDegree.set(n.id, 0);
+  }
+  for (const e of edges) {
+    if (nodeIdSet.has(e.source) && nodeIdSet.has(e.target)) {
+      children.get(e.source)!.push(e.target);
+      inDegree.set(e.target, (inDegree.get(e.target) ?? 0) + 1);
+    }
+  }
+
+  // BFS – najdłuższa ścieżka = głębokość (kolumna) węzła
+  const depth = new Map<string, number>();
+  const tempIn = new Map(inDegree);
+  const queue: string[] = [];
+
+  for (const n of nodes) {
+    if ((inDegree.get(n.id) ?? 0) === 0) {
+      queue.push(n.id);
+      depth.set(n.id, 0);
+    }
+  }
+
+  let qi = 0;
+  while (qi < queue.length) {
+    const id = queue[qi++];
+    const d = depth.get(id)!;
+    for (const child of children.get(id) ?? []) {
+      depth.set(child, Math.max(depth.get(child) ?? 0, d + 1));
+      tempIn.set(child, (tempIn.get(child) ?? 1) - 1);
+      if ((tempIn.get(child) ?? 0) === 0) queue.push(child);
+    }
+  }
+
+  // Węzły w cyklach (nieodwiedzone) idą do kolumny 0
+  for (const n of nodes) {
+    if (!depth.has(n.id)) depth.set(n.id, 0);
+  }
+
+  // Zgrupuj węzły według głębokości, posortuj wewnątrz grupy po Y
+  const byDepth = new Map<number, PlannerPilotNode[]>();
+  for (const n of nodes) {
+    const d = depth.get(n.id) ?? 0;
+    if (!byDepth.has(d)) byDepth.set(d, []);
+    byDepth.get(d)!.push(n);
+  }
+  for (const group of byDepth.values()) {
+    group.sort((a, b) => a.position.y - b.position.y);
+  }
+
+  const maxDepth = Math.max(...depth.values(), 0);
+  const maxGroupSize = Math.max(...Array.from(byDepth.values()).map((g) => g.length), 1);
+
+  const totalW = (maxDepth + 1) * colStep - gap;
+  const totalH = maxGroupSize * rowStep - gap;
+
+  const startX = cx - totalW / 2;
+  const startY = cy - totalH / 2;
+
+  const newPos = new Map<string, { x: number; y: number }>();
+  for (const [d, group] of byDepth) {
+    const colVertOffset = ((maxGroupSize - group.length) / 2) * rowStep;
+    group.forEach((n, i) => {
+      newPos.set(n.id, {
+        x: startX + d * colStep,
+        y: startY + colVertOffset + i * rowStep,
+      });
+    });
+  }
+
+  return cloneNodesForLayout(nodes).map((n) => ({
+    ...n,
+    position: newPos.get(n.id) ?? n.position,
+  }));
+}

@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
 
 type CampaignInviteRedirectPageProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
-export default function CampaignInviteRedirectPage({ params }: CampaignInviteRedirectPageProps) {
-  redirect(`/campaign/${params.id}/settings/invitations`);
+export default async function CampaignInviteRedirectPage({
+  params
+}: CampaignInviteRedirectPageProps) {
+  const { id } = await params;
+  redirect(`/campaign/${id}/settings/invitations`);
 }

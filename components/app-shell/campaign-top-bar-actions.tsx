@@ -5,12 +5,10 @@ import { IconSettings } from "@tabler/icons-react";
 import type { Route } from "next";
 import Link from "next/link";
 
-import { MOCK_SESSION_RSVP_PLAYERS } from "@/lib/mocks/demo-campaign-roster";
+import { useTopBar } from "@/components/app-shell/top-bar-context";
 
-/** Tymczasowe dane UI — zastąpić fetch z Supabase (sesje / RSVP). */
+/** Placeholder — zastąpić fetchem z tabeli sesji gdy powstanie. */
 const MOCK_NEXT_SESSION_AT = new Date("2026-04-12T19:00:00");
-
-const AVATAR_GAP_PX = 8;
 
 const formatSessionFull = (d: Date) =>
   new Intl.DateTimeFormat("pl-PL", {
@@ -33,26 +31,10 @@ function initials(name: string) {
   return name.slice(0, 2).toUpperCase();
 }
 
-/** Inset ring — bez zewnętrznego „badge”, nie psuje layoutu ani inicjałów. */
-function avatarStylesForRsvp(accepted: boolean) {
-  if (accepted) {
-    return {
-      root: {
-        boxShadow: "inset 0 0 0 2px var(--mantine-color-teal-filled)"
-      }
-    } as const;
-  }
-  return {
-    root: {
-      filter: "grayscale(1)",
-      opacity: 0.48
-    }
-  } as const;
-}
+const AVATAR_COLORS = ["cyan", "violet", "grape", "teal", "indigo", "orange"] as const;
 
 type CampaignTopBarActionsProps = {
   campaignId: string;
-  /** Odstępy między: sesja | zaakceptowali+awatary | ustawienia */
   actionsSectionGap?: MantineSpacing;
 };
 
@@ -60,6 +42,9 @@ export function CampaignTopBarActions({
   campaignId,
   actionsSectionGap = "xl"
 }: CampaignTopBarActionsProps) {
+  const { config } = useTopBar();
+  const characters = config.variant === "campaign" ? config.campaignCharacters : [];
+
   const settingsHref = `/campaign/${campaignId}/settings` as Route;
   const playerCharactersHref = `/campaign/${campaignId}/player-characters` as Route;
   const sessionTooltip = formatSessionFull(MOCK_NEXT_SESSION_AT);
@@ -93,35 +78,30 @@ export function CampaignTopBarActions({
         </Group>
       </Tooltip>
 
-      <Group align="center" gap="sm" justify="flex-end" style={{ flexShrink: 0 }} wrap="nowrap">
-        <Text c="dimmed" hiddenFrom="sm" size="xs" style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
-          Zaakceptowali
-        </Text>
-        <Text c="dimmed" size="sm" style={{ flexShrink: 0, whiteSpace: "nowrap" }} visibleFrom="sm">
-          Zaakceptowali
-        </Text>
-        <Group gap={AVATAR_GAP_PX} justify="flex-end" style={{ flexShrink: 0 }} wrap="nowrap">
-          {MOCK_SESSION_RSVP_PLAYERS.map((p) => (
-            <Tooltip
-              key={p.id}
-              label={`${p.name} — ${p.accepted ? "Potwierdzono obecność" : "Oczekuje na potwierdzenie"}`}
-            >
-              <Avatar
-                aria-label={p.name}
-                color={p.accepted ? "cyan" : "gray"}
-                component={Link}
-                href={playerCharactersHref}
-                prefetch
-                radius="xl"
-                size="sm"
-                styles={avatarStylesForRsvp(p.accepted)}
-              >
-                {initials(p.name)}
-              </Avatar>
-            </Tooltip>
-          ))}
+      {characters.length > 0 ? (
+        <Group align="center" gap="sm" style={{ flexShrink: 0 }} wrap="nowrap">
+          <Text c="dimmed" size="sm" style={{ flexShrink: 0, whiteSpace: "nowrap" }} visibleFrom="sm">
+            Postacie
+          </Text>
+          <Group gap={6} justify="flex-end" style={{ flexShrink: 0 }} wrap="nowrap">
+            {characters.map((c, i) => (
+              <Tooltip key={c.id} label={c.name}>
+                <Avatar
+                  aria-label={c.name}
+                  color={AVATAR_COLORS[i % AVATAR_COLORS.length]}
+                  component={Link}
+                  href={playerCharactersHref}
+                  prefetch
+                  radius="xl"
+                  size="sm"
+                >
+                  {initials(c.name)}
+                </Avatar>
+              </Tooltip>
+            ))}
+          </Group>
         </Group>
-      </Group>
+      ) : null}
 
       <Tooltip label="Ustawienia kampanii">
         <ActionIcon

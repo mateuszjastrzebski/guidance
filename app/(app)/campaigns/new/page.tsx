@@ -5,7 +5,7 @@ import { CreateFabulaForm } from "@/app/(app)/campaigns/new/create-fabula-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function NewFabulaPage() {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();

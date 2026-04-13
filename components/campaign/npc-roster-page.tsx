@@ -17,6 +17,8 @@ import {
   Tooltip
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import type { Route } from "next";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition, type FormEvent } from "react";
 
@@ -41,6 +43,7 @@ function initials(name: string) {
 type NpcRosterPageProps = {
   campaignId: string;
   canAddNpc: boolean;
+  campaignCharacters: { id: string; name: string }[];
   npcs: NpcListItem[];
   emptyMessage: string;
   errorMessage?: string | null;
@@ -49,6 +52,7 @@ type NpcRosterPageProps = {
 export function NpcRosterPage({
   campaignId,
   canAddNpc,
+  campaignCharacters: _campaignCharacters,
   npcs,
   emptyMessage,
   errorMessage
@@ -92,6 +96,7 @@ export function NpcRosterPage({
           ) : null}
         </Group>
 
+        {/* Add NPC modal */}
         <Modal
           centered
           onClose={() => {
@@ -131,6 +136,7 @@ export function NpcRosterPage({
           </form>
         </Modal>
 
+        {/* NPC list */}
         {errorMessage ? (
           <Text c="red" size="sm">
             {errorMessage}
@@ -198,11 +204,14 @@ export function NpcRosterPage({
                       </Text>
                     ) : null}
                     <Group gap="xs" mt="xs">
-                      <Tooltip label="Wkrótce">
-                        <Button disabled size="compact-sm" variant="light">
-                          Szczegóły
-                        </Button>
-                      </Tooltip>
+                      <Button
+                        component={Link}
+                        href={`/campaign/${campaignId}/npcs/${n.id}` as Route}
+                        size="compact-sm"
+                        variant="light"
+                      >
+                        Szczegóły
+                      </Button>
                       <Tooltip label="Wkrótce">
                         <Button disabled size="compact-sm" variant="light">
                           Notatki MG

@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=missing_code`);
   }
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const { supabaseAnonKey, supabaseUrl } = getSupabaseEnv();
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {

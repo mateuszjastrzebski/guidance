@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 
 type Planner3PageProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
-export default function Planner3Page({ params }: Planner3PageProps) {
-  redirect(`/campaign/${params.id}/planner-2`);
+export default async function Planner3Page({ params }: Planner3PageProps) {
+  const { id } = await params;
+  redirect(`/campaign/${id}/planner-2`);
 }

@@ -9,6 +9,7 @@ import {
   isFabulaKind
 } from "@/lib/fabula";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 const SYSTEMS: GameSystem[] = ["dnd5e", "coc", "other"];
 
@@ -22,7 +23,7 @@ export async function createFabula(
   _prev: CreateFabulaState,
   formData: FormData
 ): Promise<CreateFabulaState> {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -63,6 +64,19 @@ export async function createFabula(
   if (cErr || !campaignId) {
     return { error: cErr?.message ?? "Nie udało się utworzyć fabuły." };
   }
+
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: user.id,
+    event: "campaign_created",
+    properties: {
+      campaign_id: campaignId,
+      campaign_name: name,
+      system,
+      fabula_kind,
+    },
+  });
+  await posthog.flush();
 
   revalidatePath("/dashboard");
   redirect(`/campaign/${campaignId}`);

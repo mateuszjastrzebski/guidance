@@ -24,7 +24,7 @@ export async function listNpcsForBoard(campaignId: string): Promise<ListNpcsForB
     return { ok: false, error: "Nieprawidłowa kampania." };
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -50,4 +50,59 @@ export async function listNpcsForBoard(campaignId: string): Promise<ListNpcsForB
   }));
 
   return { ok: true, npcs };
+}
+
+export type CreateNpcForBoardResult =
+  | { ok: true; npc: PlannerNpcForBoard }
+  | { ok: false; error: string };
+
+export async function createNpcForBoard(
+  campaignId: string,
+  name: string
+): Promise<CreateNpcForBoardResult> {
+  if (!isUuid(campaignId)) {
+    return { ok: false, error: "Nieprawidłowa kampania." };
+  }
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return { ok: false, error: "Podaj nazwę NPC." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Musisz być zalogowany." };
+
+  const { data: member, error: memberErr } = await supabase
+    .from("campaign_members")
+    .select("role")
+    .eq("campaign_id", campaignId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (memberErr || !member) return { ok: false, error: "Nie jesteś członkiem tej kampanii." };
+  if (member.role !== "gm") return { ok: false, error: "Tylko MG może dodać NPC." };
+
+  const { data, error: insertErr } = await supabase
+    .from("npcs")
+    .insert({
+      campaign_id: campaignId,
+      name: trimmed,
+      description: null,
+      level: null,
+      portrait_url: null,
+      hidden_notes: null
+    })
+    .select("id, name, portrait_url")
+    .single();
+
+  if (insertErr || !data) {
+    return { ok: false, error: insertErr?.message ?? "Nie udało się utworzyć NPC." };
+  }
+
+  return {
+    ok: true,
+    npc: { id: data.id, name: data.name, portrait_url: data.portrait_url }
+  };
 }

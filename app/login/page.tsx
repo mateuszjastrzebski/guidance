@@ -1,7 +1,7 @@
 import { LoginForm } from "@/app/login/login-form";
 
 type LoginPageProps = {
-  searchParams: Record<string, string | string[] | undefined>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 function firstString(
@@ -16,8 +16,9 @@ function firstString(
   return undefined;
 }
 
-export default function LoginPage({ searchParams }: LoginPageProps) {
-  const authError = firstString(searchParams.error);
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const sp = await searchParams;
+  const authError = firstString(sp.error);
 
   return <LoginForm authError={authError} />;
 }

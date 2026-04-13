@@ -16,10 +16,10 @@ import {
   TextInput,
   Tooltip
 } from "@mantine/core";
-import { IconInfoCircle, IconPencil, IconTrash } from "@tabler/icons-react";
+import { IconInfoCircle, IconMapPin, IconMask, IconPencil, IconQuestionMark, IconTarget, IconTrash } from "@tabler/icons-react";
 import { Handle, Position, useUpdateNodeInternals, type NodeProps } from "@xyflow/react";
 import Link from "next/link";
-import { memo, useCallback, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 
 import { getQuestForBoard } from "@/app/(app)/campaign/[id]/board/quests-actions";
 import { PlannerPilotNodeDragEdges } from "@/components/planner2/planner-pilot-node-drag-edges";
@@ -69,10 +69,23 @@ function EventNodeInner({ id, data }: NodeProps) {
     assignThreadToEvent,
     campaignId,
     createThreadForEvent,
+    focusedThreadId,
+    locationOptions,
+    npcOptions,
     openEventDetails,
     patchEventData,
+    setFocusedThreadId,
     threadOptions
   } = usePlanner2ReactFlowPilot();
+
+  const locationById = useMemo(
+    () => Object.fromEntries(locationOptions.map((l) => [l.id, l])),
+    [locationOptions]
+  );
+  const npcById = useMemo(
+    () => Object.fromEntries(npcOptions.map((n) => [n.id, n])),
+    [npcOptions]
+  );
   const d = data as PlannerEventNodeData;
 
   const [shellHover, setShellHover] = useState(false);
@@ -284,6 +297,8 @@ function EventNodeInner({ id, data }: NodeProps) {
     );
   }
 
+  const isDimmed = focusedThreadId !== null && d.threadId !== focusedThreadId;
+
   return (
     <Box
       onMouseEnter={() => setShellHover(true)}
@@ -294,7 +309,9 @@ function EventNodeInner({ id, data }: NodeProps) {
         display: "inline-block",
         margin: -40,
         minWidth: 0,
-        padding: 40
+        opacity: isDimmed ? 0.25 : 1,
+        padding: 40,
+        transition: "opacity 200ms ease"
       }}
     >
       <Box
@@ -311,6 +328,30 @@ function EventNodeInner({ id, data }: NodeProps) {
       >
         <PlannerPilotNodeDragEdges />
         <Planner2ReactFlowNodeAddMenus hoverParent={shellHover} sourceNodeId={id} />
+        {d.threadId ? (
+          <Tooltip label="Filtruj ten wątek" openDelay={400} position="top" withArrow>
+            <ActionIcon
+              aria-label="Filtruj ten wątek"
+              className="nodrag"
+              color={focusedThreadId === d.threadId ? "violet" : "gray"}
+              onClick={(e) => {
+                e.stopPropagation();
+                setFocusedThreadId(focusedThreadId === d.threadId ? null : (d.threadId ?? null));
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              size="xs"
+              style={{
+                position: "absolute",
+                right: 6,
+                top: 6,
+                zIndex: 5
+              }}
+              variant={focusedThreadId === d.threadId ? "light" : "subtle"}
+            >
+              <IconTarget size={12} />
+            </ActionIcon>
+          </Tooltip>
+        ) : null}
         <Handle
           id="left"
           onPointerDownCapture={onHandleShiftPointerDown("left")}
@@ -632,6 +673,103 @@ function EventNodeInner({ id, data }: NodeProps) {
             value={eventNodeEditorValue(d)}
             variant="unstyled"
           />
+          {((d.locationIds?.length ?? 0) > 0 ||
+            (d.npcIds?.length ?? 0) > 0 ||
+            d.dlaczego?.trim()) ? (
+            <Group gap={4} mt={6} wrap="wrap">
+              {d.locationIds?.map((lid) => {
+                const loc = locationById[lid];
+                if (!loc) return null;
+                return (
+                  <Box
+                    key={lid}
+                    className="nodrag"
+                    component="button"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    style={{
+                      alignItems: "center",
+                      background: "light-dark(var(--mantine-color-teal-0), var(--mantine-color-teal-9))",
+                      border: "1px solid light-dark(var(--mantine-color-teal-3), var(--mantine-color-teal-7))",
+                      borderRadius: "var(--mantine-radius-sm)",
+                      color: "light-dark(var(--mantine-color-teal-7), var(--mantine-color-teal-3))",
+                      cursor: "default",
+                      display: "inline-flex",
+                      fontSize: "var(--mantine-font-size-xs)",
+                      gap: 3,
+                      lineHeight: 1.3,
+                      maxWidth: 120,
+                      overflow: "hidden",
+                      padding: "2px 5px",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    <IconMapPin size={11} style={{ flexShrink: 0 }} />
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{loc.name}</span>
+                  </Box>
+                );
+              })}
+              {d.npcIds?.map((nid) => {
+                const npc = npcById[nid];
+                if (!npc) return null;
+                return (
+                  <Box
+                    key={nid}
+                    className="nodrag"
+                    component="button"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    style={{
+                      alignItems: "center",
+                      background: "light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5))",
+                      border: "1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))",
+                      borderRadius: "var(--mantine-radius-sm)",
+                      color: "light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-3))",
+                      cursor: "default",
+                      display: "inline-flex",
+                      fontSize: "var(--mantine-font-size-xs)",
+                      gap: 3,
+                      lineHeight: 1.3,
+                      maxWidth: 120,
+                      overflow: "hidden",
+                      padding: "2px 5px",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    <IconMask size={11} style={{ flexShrink: 0 }} />
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{npc.name}</span>
+                  </Box>
+                );
+              })}
+              {d.dlaczego?.trim() ? (
+                <Box
+                  className="nodrag"
+                  component="button"
+                  onClick={(e) => { e.stopPropagation(); openEventDetails(id); }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  style={{
+                    alignItems: "center",
+                    background: "light-dark(var(--mantine-color-red-0), var(--mantine-color-red-9))",
+                    border: "1px solid light-dark(var(--mantine-color-red-3), var(--mantine-color-red-7))",
+                    borderRadius: "var(--mantine-radius-sm)",
+                    color: "light-dark(var(--mantine-color-red-7), var(--mantine-color-red-3))",
+                    cursor: "default",
+                    display: "inline-flex",
+                    fontSize: "var(--mantine-font-size-xs)",
+                    gap: 3,
+                    lineHeight: 1.3,
+                    maxWidth: 160,
+                    overflow: "hidden",
+                    padding: "2px 5px",
+                    whiteSpace: "nowrap"
+                  }}
+                >
+                  <IconQuestionMark size={11} style={{ flexShrink: 0 }} />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{d.dlaczego.trim()}</span>
+                </Box>
+              ) : null}
+            </Group>
+          ) : null}
           <Group justify="flex-end" mt={6}>
             <Tooltip label="Szczegóły eventu" position="left" withArrow>
               <ActionIcon

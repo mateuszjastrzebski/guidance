@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -36,7 +37,7 @@ export async function createNpc(formData: FormData): Promise<CreateNpcResult> {
     level = n;
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -72,6 +73,47 @@ export async function createNpc(formData: FormData): Promise<CreateNpcResult> {
   if (insertErr) {
     return { error: insertErr.message ?? "Nie udało się utworzyć NPC." };
   }
+
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: user.id,
+    event: "npc_created",
+    properties: {
+      campaign_id: campaignId,
+      npc_name: name,
+      level,
+    },
+  });
+  await posthog.flush();
+
+  revalidatePath(`/campaign/${campaignId}`, "layout");
+  return {};
+}
+
+export type UpdateNpcResult = { error?: string };
+
+export async function updateNpc(
+  npcId: string,
+  campaignId: string,
+  patch: { name?: string; description?: string | null }
+): Promise<UpdateNpcResult> {
+  if (!isUuid(npcId)) return { error: "Nieprawidłowe ID NPC." };
+  if (!isUuid(campaignId)) return { error: "Nieprawidłowa kampania." };
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Musisz być zalogowany." };
+
+  const { error } = await supabase
+    .from("npcs")
+    .update(patch)
+    .eq("id", npcId)
+    .eq("campaign_id", campaignId);
+
+  if (error) return { error: error.message };
 
   revalidatePath(`/campaign/${campaignId}`, "layout");
   return {};

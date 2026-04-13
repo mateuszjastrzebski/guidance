@@ -7,11 +7,12 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type CampaignLayoutProps = {
   children: ReactNode;
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export default async function CampaignLayout({ children, params }: CampaignLayoutProps) {
-  const supabase = createSupabaseServerClient();
+  const { id: campaignId } = await params;
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -20,11 +21,18 @@ export default async function CampaignLayout({ children, params }: CampaignLayou
     redirect("/login");
   }
 
-  const { data: campaign, error } = await supabase
-    .from("campaigns")
-    .select("id, name, fabula_kind")
-    .eq("id", params.id)
-    .single();
+  const [{ data: campaign, error }, { data: characterRows }] = await Promise.all([
+    supabase
+      .from("campaigns")
+      .select("id, name, fabula_kind")
+      .eq("id", campaignId)
+      .single(),
+    supabase
+      .from("characters")
+      .select("id, name")
+      .eq("campaign_id", campaignId)
+      .order("name", { ascending: true })
+  ]);
 
   if (error || !campaign) {
     notFound();
@@ -34,9 +42,15 @@ export default async function CampaignLayout({ children, params }: CampaignLayou
     notFound();
   }
 
+  const campaignCharacters = (characterRows ?? []).map((c) => ({ id: c.id, name: c.name }));
+
   return (
     <>
-      <SetCampaignTopBar campaignId={campaign.id} campaignName={campaign.name} />
+      <SetCampaignTopBar
+        campaignId={campaign.id}
+        campaignName={campaign.name}
+        campaignCharacters={campaignCharacters}
+      />
       {children}
     </>
   );

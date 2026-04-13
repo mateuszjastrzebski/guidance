@@ -1,6 +1,9 @@
 {
   "name": "campaign-layer",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=20.20.0 <21 || >=22.22.0"
+  },
   "scripts": {
     "dev": "next dev",
     "dev:turbo": "next dev --turbo",
@@ -18,7 +21,9 @@
     "@supabase/supabase-js": "^2.101.1",
     "@tabler/icons-react": "^3.41.1",
     "@xyflow/react": "^12.10.2",
-    "next": "^14.2.35",
+    "next": "^15.3.0",
+    "posthog-js": "^1.367.0",
+    "posthog-node": "^5.29.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
@@ -30,7 +35,7 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^8.57.1",
-    "eslint-config-next": "^14.2.35",
+    "eslint-config-next": "^15.3.0",
     "jsdom": "^28.1.0",
     "postcss": "^8.5.8",
     "postcss-preset-mantine": "^1.18.0",

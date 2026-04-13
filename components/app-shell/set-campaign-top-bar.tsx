@@ -2,20 +2,21 @@
 
 import { useLayoutEffect } from "react";
 
-import { useTopBar } from "@/components/app-shell/top-bar-context";
+import { useTopBar, type CampaignCharacter } from "@/components/app-shell/top-bar-context";
 
 type SetCampaignTopBarProps = {
   campaignId: string;
   campaignName: string;
+  campaignCharacters: CampaignCharacter[];
 };
 
-export function SetCampaignTopBar({ campaignId, campaignName }: SetCampaignTopBarProps) {
+export function SetCampaignTopBar({ campaignId, campaignName, campaignCharacters }: SetCampaignTopBarProps) {
   const { setConfig } = useTopBar();
 
   useLayoutEffect(() => {
-    setConfig({ variant: "campaign", campaignId, campaignName });
+    setConfig({ variant: "campaign", campaignId, campaignName, campaignCharacters });
     return () => setConfig({ variant: "app" });
-  }, [campaignId, campaignName, setConfig]);
+  }, [campaignId, campaignName, campaignCharacters, setConfig]);
 
   return null;
 }

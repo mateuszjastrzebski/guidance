@@ -4,15 +4,15 @@ import {
   PlayerCharactersPage,
   type PlayerCharacterListItem
 } from "@/components/campaign/player-characters-page";
-import { MOCK_DEMO_PLAYER_CHARACTERS } from "@/lib/mocks/demo-campaign-roster";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type PlayerCharactersRouteProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export default async function PlayerCharactersRoute({ params }: PlayerCharactersRouteProps) {
-  const supabase = createSupabaseServerClient();
+  const { id: campaignId } = await params;
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -20,8 +20,6 @@ export default async function PlayerCharactersRoute({ params }: PlayerCharacters
   if (!user) {
     redirect("/login");
   }
-
-  const campaignId = params.id;
 
   const { data: memberRow } = await supabase
     .from("campaign_members")
@@ -50,16 +48,12 @@ export default async function PlayerCharactersRoute({ params }: PlayerCharacters
     );
   }
 
-  const fromDb: PlayerCharacterListItem[] = (rows ?? []).map((r) => ({
+  const characters: PlayerCharacterListItem[] = (rows ?? []).map((r) => ({
     id: r.id,
     name: r.name,
     level: r.level,
     portrait_url: r.portrait_url
   }));
-
-  const characters: PlayerCharacterListItem[] = [...fromDb, ...MOCK_DEMO_PLAYER_CHARACTERS].sort((a, b) =>
-    a.name.localeCompare(b.name, "pl")
-  );
 
   const emptyMessage = isGm
     ? "Brak postaci w tej kampanii. Możesz je dodać lub powiązać z graczami w ustawieniach fabuły."

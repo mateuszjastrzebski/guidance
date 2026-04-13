@@ -17,15 +17,16 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type SettingsPageProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export default async function CampaignSettingsPage({ params }: SettingsPageProps) {
-  const supabase = createSupabaseServerClient();
+  const { id } = await params;
+  const supabase = await createSupabaseServerClient();
   const { data: campaign, error } = await supabase
     .from("campaigns")
     .select("id, name, system, fabula_kind, cover_image_url")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (error || !campaign || !isFabulaKind(campaign.fabula_kind)) {
