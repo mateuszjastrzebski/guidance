@@ -75,6 +75,7 @@ export function PlayerInfosSection({
 }: PlayerInfosSectionProps) {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
 
   // Debounce timers per row id
@@ -86,9 +87,15 @@ export function PlayerInfosSection({
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setLoadError(null);
     listPlayerInfosForEntity(campaignId, entityRef).then((result) => {
       if (cancelled) return;
-      if (result.ok) setRows(result.infos.map(rowFromDb));
+      if (result.ok) {
+        setRows(result.infos.map(rowFromDb));
+      } else {
+        setRows([]);
+        setLoadError(result.error);
+      }
       setLoading(false);
     });
     return () => {
@@ -253,6 +260,9 @@ export function PlayerInfosSection({
           ))}
         </Stack>
       )}
+      {loadError ? (
+        <Text c="red" size="sm">{loadError}</Text>
+      ) : null}
       {addError ? (
         <Text c="red" size="sm">{addError}</Text>
       ) : null}
