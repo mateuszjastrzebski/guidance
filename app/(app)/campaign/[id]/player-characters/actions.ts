@@ -83,7 +83,36 @@ export async function createPlayerCharacter(
       level,
     },
   });
-  await posthog.shutdown();
+  await posthog.flush();
+
+  revalidatePath(`/campaign/${campaignId}`, "layout");
+  return {};
+}
+
+export type UpdatePlayerCharacterResult = { error?: string };
+
+export async function updatePlayerCharacter(
+  characterId: string,
+  campaignId: string,
+  patch: { name?: string; level?: number | null }
+): Promise<UpdatePlayerCharacterResult> {
+  if (!isUuid(characterId)) return { error: "Nieprawidłowe ID postaci." };
+  if (!isUuid(campaignId)) return { error: "Nieprawidłowa kampania." };
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Musisz być zalogowany." };
+
+  const { error } = await supabase
+    .from("characters")
+    .update(patch)
+    .eq("id", characterId)
+    .eq("campaign_id", campaignId);
+
+  if (error) return { error: error.message };
 
   revalidatePath(`/campaign/${campaignId}`, "layout");
   return {};

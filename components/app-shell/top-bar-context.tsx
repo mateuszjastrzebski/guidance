@@ -2,9 +2,11 @@
 
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
+export type CampaignCharacter = { id: string; name: string };
+
 export type TopBarConfig =
   | { variant: "app" }
-  | { variant: "campaign"; campaignId: string; campaignName: string };
+  | { variant: "campaign"; campaignId: string; campaignName: string; campaignCharacters: CampaignCharacter[] };
 
 type TopBarContextValue = {
   config: TopBarConfig;

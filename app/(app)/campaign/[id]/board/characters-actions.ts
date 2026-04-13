@@ -1,6 +1,5 @@
 "use server";
 
-import { MOCK_DEMO_PLAYER_CHARACTERS } from "@/lib/mocks/demo-campaign-roster";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const UUID_RE =
@@ -38,9 +37,7 @@ export async function listCharactersForBoard(campaignId: string): Promise<ListCh
     return { ok: false, error: error?.message ?? "Nie udało się pobrać postaci." };
   }
 
-  const fromDb = data.map((row) => ({ id: row.id, name: row.name }));
-  const fromDemo = MOCK_DEMO_PLAYER_CHARACTERS.map((c) => ({ id: c.id, name: c.name }));
-  const characters = [...fromDb, ...fromDemo].sort((a, b) => a.name.localeCompare(b.name, "pl"));
+  const characters = data.map((row) => ({ id: row.id, name: row.name }));
 
   return { ok: true, characters };
 }

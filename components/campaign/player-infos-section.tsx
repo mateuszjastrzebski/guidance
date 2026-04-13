@@ -75,9 +75,13 @@ export function PlayerInfosSection({
 }: PlayerInfosSectionProps) {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addError, setAddError] = useState<string | null>(null);
 
   // Debounce timers per row id
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  // Stable ref to entityRef so addRow doesn't need it as dep
+  const entityRefRef = useRef(entityRef);
+  entityRefRef.current = entityRef;
 
   useEffect(() => {
     let cancelled = false;
@@ -95,10 +99,14 @@ export function PlayerInfosSection({
   }, [campaignId, entityRef.type, entityRef.id]);
 
   const addRow = useCallback(async () => {
-    const result = await createPlayerInfo(campaignId, entityRef);
-    if (!result.ok) return;
+    setAddError(null);
+    const result = await createPlayerInfo(campaignId, entityRefRef.current);
+    if (!result.ok) {
+      setAddError(result.error);
+      return;
+    }
     setRows((prev) => [...prev, rowFromDb(result.info)]);
-  }, [campaignId, entityRef]);
+  }, [campaignId]);
 
   const patchBody = useCallback(
     (rowId: string, body: string) => {
@@ -245,6 +253,9 @@ export function PlayerInfosSection({
           ))}
         </Stack>
       )}
+      {addError ? (
+        <Text c="red" size="sm">{addError}</Text>
+      ) : null}
       <Button
         aria-label="Dodaj informację dla graczy"
         color="violet"

@@ -71,7 +71,7 @@ export async function createLocation(formData: FormData): Promise<CreateLocation
       location_name: name,
     },
   });
-  await posthog.shutdown();
+  await posthog.flush();
 
   revalidatePath(`/campaign/${campaignId}`, "layout");
   return {};

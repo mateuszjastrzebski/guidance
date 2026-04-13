@@ -90,7 +90,7 @@ export async function createQuestForBoard(
       quest_name: data.name,
     },
   });
-  await posthog.shutdown();
+  await posthog.flush();
 
   return { ok: true, id: data.id, name: data.name };
 }
@@ -152,7 +152,7 @@ export async function linkQuests(
       to_quest_id: toQuestId,
     },
   });
-  await posthog.shutdown();
+  await posthog.flush();
 
   return { ok: true };
 }
@@ -239,7 +239,7 @@ export async function updateQuestForBoard(
       quest_name: title,
     },
   });
-  await posthog.shutdown();
+  await posthog.flush();
 
   return { ok: true };
 }

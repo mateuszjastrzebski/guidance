@@ -76,7 +76,7 @@ export async function createFabula(
       fabula_kind,
     },
   });
-  await posthog.shutdown();
+  await posthog.flush();
 
   revalidatePath("/dashboard");
   redirect(`/campaign/${campaignId}`);

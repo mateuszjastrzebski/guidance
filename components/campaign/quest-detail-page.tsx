@@ -1,9 +1,8 @@
 "use client";
 
-import { Anchor, Container, Divider, Stack, Tabs, Text, Title } from "@mantine/core";
-import type { Route } from "next";
-import Link from "next/link";
+import { Container, Divider, Stack, Tabs, Text, Title } from "@mantine/core";
 
+import { BackButton } from "@/components/campaign/back-button";
 import { PlayerInfosSection } from "@/components/campaign/player-infos-section";
 
 type QuestDetailPageProps = {
@@ -24,14 +23,10 @@ const QUEST_STATUS_LABEL: Record<string, string> = {
 };
 
 export function QuestDetailPage({ campaignId, campaignCharacters, quest }: QuestDetailPageProps) {
-  const boardHref = `/campaign/${campaignId}` as Route;
-
   return (
     <Container pb="xl" pt="md" size="sm">
       <Stack gap="md">
-        <Anchor component={Link} href={boardHref} size="sm">
-          Wróć do tablicy
-        </Anchor>
+        <BackButton label="Wróć" />
         <Title order={2}>{quest.name}</Title>
         <Text c="dimmed" size="sm">
           Status: {QUEST_STATUS_LABEL[quest.status] ?? quest.status}

@@ -16,6 +16,8 @@ import {
   Tooltip
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import type { Route } from "next";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition, type FormEvent } from "react";
 
@@ -202,11 +204,14 @@ export function PlayerCharactersPage({
                       {c.level != null ? `Poziom ${c.level}` : "—"}
                     </Text>
                     <Group gap="xs" mt="xs">
-                      <Tooltip label="Wkrótce">
-                        <Button disabled size="compact-sm" variant="light">
-                          Szczegóły
-                        </Button>
-                      </Tooltip>
+                      <Button
+                        component={Link}
+                        href={`/campaign/${campaignId}/player-characters/${c.id}` as Route}
+                        size="compact-sm"
+                        variant="light"
+                      >
+                        Szczegóły
+                      </Button>
                       <Tooltip label="Wkrótce">
                         <Button disabled size="compact-sm" variant="light">
                           Notatki

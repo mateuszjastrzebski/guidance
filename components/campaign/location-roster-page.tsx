@@ -3,13 +3,10 @@
 import {
   Button,
   Container,
-  Divider,
-  Drawer,
   Group,
   Modal,
   Paper,
   Stack,
-  Tabs,
   Text,
   Textarea,
   TextInput,
@@ -17,11 +14,12 @@ import {
   Tooltip
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import type { Route } from "next";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition, type FormEvent } from "react";
 
-import { createLocation, updateLocation } from "@/app/(app)/campaign/[id]/locations/actions";
-import { PlayerInfosSection } from "@/components/campaign/player-infos-section";
+import { createLocation } from "@/app/(app)/campaign/[id]/locations/actions";
 
 export type LocationListItem = {
   id: string;
@@ -41,7 +39,7 @@ type LocationRosterPageProps = {
 export function LocationRosterPage({
   campaignId,
   canAdd,
-  campaignCharacters,
+  campaignCharacters: _campaignCharacters,
   locations,
   emptyMessage,
   errorMessage
@@ -50,35 +48,6 @@ export function LocationRosterPage({
   const [addOpened, { open: openAdd, close: closeAdd }] = useDisclosure(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-
-  // Details drawer
-  const [detailsLocation, setDetailsLocation] = useState<LocationListItem | null>(null);
-  const [detailsTab, setDetailsTab] = useState<string>("info");
-  const [detailsName, setDetailsName] = useState("");
-  const [detailsDescription, setDetailsDescription] = useState("");
-  const [detailsSaving, setDetailsSaving] = useState(false);
-
-  const openDetails = useCallback((loc: LocationListItem) => {
-    setDetailsLocation(loc);
-    setDetailsName(loc.name);
-    setDetailsDescription(loc.description ?? "");
-    setDetailsTab("info");
-  }, []);
-
-  const closeDetails = useCallback(() => {
-    setDetailsLocation(null);
-  }, []);
-
-  const saveDetails = useCallback(async () => {
-    if (!detailsLocation) return;
-    setDetailsSaving(true);
-    await updateLocation(detailsLocation.id, campaignId, {
-      name: detailsName.trim() || detailsLocation.name,
-      description: detailsDescription.trim() || null
-    });
-    setDetailsSaving(false);
-    router.refresh();
-  }, [detailsLocation, campaignId, detailsName, detailsDescription, router]);
 
   const onAddSubmit = useCallback(
     (e: FormEvent<HTMLFormElement>) => {
@@ -164,57 +133,6 @@ export function LocationRosterPage({
           </form>
         </Modal>
 
-        {/* Details drawer */}
-        <Drawer
-          onClose={closeDetails}
-          opened={detailsLocation !== null}
-          padding="lg"
-          position="right"
-          size="md"
-          title={detailsLocation?.name ?? "Szczegóły lokacji"}
-        >
-          {detailsLocation ? (
-            <Tabs value={detailsTab} onChange={(v) => setDetailsTab(v ?? "info")}>
-              <Tabs.List>
-                <Tabs.Tab value="info">Info</Tabs.Tab>
-                <Tabs.Tab value="player-infos">Informacje dla graczy</Tabs.Tab>
-              </Tabs.List>
-
-              <Tabs.Panel value="info" pt="md">
-                <Stack gap="md">
-                  <TextInput
-                    label="Nazwa"
-                    onChange={(e) => setDetailsName(e.currentTarget.value)}
-                    value={detailsName}
-                  />
-                  <Textarea
-                    autosize
-                    label="Opis"
-                    maxRows={8}
-                    minRows={3}
-                    onChange={(e) => setDetailsDescription(e.currentTarget.value)}
-                    value={detailsDescription}
-                  />
-                  <Divider />
-                  <Group justify="flex-end">
-                    <Button loading={detailsSaving} onClick={saveDetails} variant="filled">
-                      Zapisz
-                    </Button>
-                  </Group>
-                </Stack>
-              </Tabs.Panel>
-
-              <Tabs.Panel value="player-infos" pt="md">
-                <PlayerInfosSection
-                  campaignId={campaignId}
-                  campaignCharacters={campaignCharacters}
-                  entityRef={{ type: "location", id: detailsLocation.id }}
-                />
-              </Tabs.Panel>
-            </Tabs>
-          ) : null}
-        </Drawer>
-
         {/* Location list */}
         {errorMessage ? (
           <Text c="red" size="sm">
@@ -238,7 +156,12 @@ export function LocationRosterPage({
                     </Text>
                   ) : null}
                   <Group gap="xs" mt="xs">
-                    <Button onClick={() => openDetails(loc)} size="compact-sm" variant="light">
+                    <Button
+                      component={Link}
+                      href={`/campaign/${campaignId}/locations/${loc.id}` as Route}
+                      size="compact-sm"
+                      variant="light"
+                    >
                       Szczegóły
                     </Button>
                     <Tooltip label="Wkrótce">
