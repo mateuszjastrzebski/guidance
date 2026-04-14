@@ -196,7 +196,7 @@ export function CharacterConfiguratorTab({ campaignId, worldEntryId, config }: P
           </Group>
 
           <Text fs="italic" size="lg">
-            „{generated.tagline}"
+            &bdquo;{generated.tagline}&rdquo;
           </Text>
 
           <Divider />
