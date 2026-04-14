@@ -1,6 +1,9 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { slugifyWorldName, WORLD_TEMPLATE_DEFINITIONS } from "@/lib/world";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -34,17 +37,30 @@ export async function listLocationsForBoard(
     return { ok: false, error: "Musisz być zalogowany." };
   }
 
-  const { data, error } = await supabase
-    .from("locations")
-    .select("id, name")
+  const { data: collections } = await supabase
+    .from("world_collections")
+    .select("id")
     .eq("campaign_id", campaignId)
-    .order("name", { ascending: true });
+    .eq("template_key", "location");
 
-  if (error || !data) {
-    return { ok: false, error: error?.message ?? "Nie udało się pobrać lokacji." };
+  if (!collections || collections.length === 0) {
+    return { ok: true, locations: [] };
   }
 
-  const locations: PlannerLocationForBoard[] = data.map((row) => ({
+  const collectionIds = collections.map((c) => c.id);
+
+  const { data, error } = await supabase
+    .from("world_entries")
+    .select("id, name")
+    .eq("campaign_id", campaignId)
+    .in("collection_id", collectionIds)
+    .order("name", { ascending: true });
+
+  if (error) {
+    return { ok: false, error: error.message ?? "Nie udało się pobrać lokacji." };
+  }
+
+  const locations: PlannerLocationForBoard[] = (data ?? []).map((row) => ({
     id: row.id,
     name: row.name
   }));
@@ -84,13 +100,61 @@ export async function createLocationForBoard(
   if (memberErr || !member) return { ok: false, error: "Nie jesteś członkiem tej kampanii." };
   if (member.role !== "gm") return { ok: false, error: "Tylko MG może dodać lokację." };
 
+  // Znajdź kolekcję lokacji lub utwórz ją
+  const { data: existingCollection } = await supabase
+    .from("world_collections")
+    .select("id, slug")
+    .eq("campaign_id", campaignId)
+    .eq("template_key", "location")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  let collectionId: string;
+  let collectionSlug: string;
+
+  if (existingCollection) {
+    collectionId = existingCollection.id;
+    collectionSlug = existingCollection.slug;
+  } else {
+    const template = WORLD_TEMPLATE_DEFINITIONS.location;
+    const baseSlug = slugifyWorldName(template.defaultSlug);
+
+    const { data: newCollection, error: createErr } = await supabase
+      .from("world_collections")
+      .insert({
+        campaign_id: campaignId,
+        template_key: "location",
+        singular_name: template.singularName,
+        plural_name: template.pluralName,
+        slug: baseSlug,
+        icon: template.icon,
+        description: template.description,
+        sort_order: 200,
+        is_system: false,
+        slug_locked: false
+      })
+      .select("id, slug")
+      .single();
+
+    if (createErr || !newCollection) {
+      return { ok: false, error: "Nie udało się utworzyć kolekcji Miejsc." };
+    }
+    collectionId = newCollection.id;
+    collectionSlug = newCollection.slug;
+    revalidatePath(`/campaign/${campaignId}`, "layout");
+  }
+
   const { data, error: insertErr } = await supabase
-    .from("locations")
+    .from("world_entries")
     .insert({
       campaign_id: campaignId,
+      collection_id: collectionId,
       name: trimmed,
-      description: null,
-      hidden_notes: null
+      summary: null,
+      portrait_url: null,
+      level: null,
+      data: {}
     })
     .select("id, name")
     .single();
@@ -98,6 +162,8 @@ export async function createLocationForBoard(
   if (insertErr || !data) {
     return { ok: false, error: insertErr?.message ?? "Nie udało się utworzyć lokacji." };
   }
+
+  revalidatePath(`/campaign/${campaignId}/world/${collectionSlug}`);
 
   return {
     ok: true,

@@ -9,6 +9,7 @@ import {
 import type { Route } from "next";
 import Link from "next/link";
 
+import { CampaignTopBarSearch } from "@/components/app-shell/campaign-top-bar-search";
 import { CampaignTopBarActions } from "@/components/app-shell/campaign-top-bar-actions";
 
 export type CampaignHeaderToolbarProps = {
@@ -85,6 +86,14 @@ export function CampaignHeaderToolbar({
         <Title lineClamp={1} maw={{ base: "40vw", sm: 360 }} order={4}>
           {campaignName}
         </Title>
+      </Group>
+      <Group
+        gap="md"
+        miw={120}
+        style={{ flex: "1 1 420px", maxWidth: 640, minWidth: 0 }}
+        wrap="nowrap"
+      >
+        <CampaignTopBarSearch />
       </Group>
       <CampaignTopBarActions actionsSectionGap={actionsSectionGap} campaignId={campaignId} />
     </Group>

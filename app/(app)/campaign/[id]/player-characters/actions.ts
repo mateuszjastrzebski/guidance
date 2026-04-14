@@ -12,31 +12,17 @@ function isUuid(value: string): boolean {
   return UUID_RE.test(value);
 }
 
-export type CreatePlayerCharacterResult = { error?: string };
+export type CreatePlayerCharacterResult = { id: string } | { error: string };
 
 export async function createPlayerCharacter(
-  formData: FormData
+  campaignId: string,
+  name?: string
 ): Promise<CreatePlayerCharacterResult> {
-  const campaignId = String(formData.get("campaignId") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim();
-  const levelRaw = String(formData.get("level") ?? "").trim();
-
   if (!isUuid(campaignId)) {
     return { error: "Nieprawidłowa kampania." };
   }
 
-  if (!name) {
-    return { error: "Podaj nazwę postaci." };
-  }
-
-  let level: number | null = null;
-  if (levelRaw) {
-    const n = Number(levelRaw);
-    if (!Number.isFinite(n) || !Number.isInteger(n) || n < 1) {
-      return { error: "Poziom musi być dodatnią liczbą całkowitą." };
-    }
-    level = n;
-  }
+  const title = (name ?? "").trim() || "Nowa postać";
 
   const supabase = await createSupabaseServerClient();
   const {
@@ -62,15 +48,19 @@ export async function createPlayerCharacter(
     return { error: "Tylko MG może dodać postać." };
   }
 
-  const { error: insertErr } = await supabase.from("characters").insert({
-    campaign_id: campaignId,
-    name,
-    level,
-    player_id: null
-  });
+  const { data, error: insertErr } = await supabase
+    .from("characters")
+    .insert({
+      campaign_id: campaignId,
+      name: title,
+      level: null,
+      player_id: null
+    })
+    .select("id")
+    .single();
 
-  if (insertErr) {
-    return { error: insertErr.message ?? "Nie udało się utworzyć postaci." };
+  if (insertErr || !data) {
+    return { error: insertErr?.message ?? "Nie udało się utworzyć postaci." };
   }
 
   const posthog = getPostHogClient();
@@ -79,14 +69,14 @@ export async function createPlayerCharacter(
     event: "player_character_created",
     properties: {
       campaign_id: campaignId,
-      character_name: name,
-      level,
+      character_name: title,
+      level: null,
     },
   });
   await posthog.flush();
 
   revalidatePath(`/campaign/${campaignId}`, "layout");
-  return {};
+  return { id: data.id };
 }
 
 export type UpdatePlayerCharacterResult = { error?: string };

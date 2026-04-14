@@ -2,7 +2,18 @@
 
 import { ActionIcon, AppShell, Box, Divider, Group, Menu, NavLink, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconUser } from "@tabler/icons-react";
+import {
+  IconBooks,
+  IconBrush,
+  IconMap2,
+  IconPlus,
+  IconProps,
+  IconRouteAltLeft,
+  IconSwords,
+  IconTool,
+  IconUser,
+  IconUsersGroup
+} from "@tabler/icons-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -15,8 +26,11 @@ import {
 } from "@/components/app-shell/campaign-nav-rail";
 import { CampaignHeaderToolbar } from "@/components/app-shell/campaign-header-toolbar";
 import { useTopBar } from "@/components/app-shell/top-bar-context";
+import { getWorldIcon } from "@/lib/world-icons";
 
 const DESKTOP_NAV_COLLAPSED_STORAGE_KEY = "campaign-layer-sidenav-desktop-collapsed";
+
+const navIconProps: IconProps = { size: 16, stroke: 1.8 };
 
 function AccountActions() {
   return (
@@ -38,6 +52,7 @@ function AccountActions() {
 
 function CampaignNavbar() {
   const pathname = usePathname();
+  const { config } = useTopBar();
   const campaignMatch = pathname.match(/^\/campaign\/([^/]+)/);
   const campaignId = campaignMatch?.[1];
   if (!campaignId) {
@@ -51,6 +66,10 @@ function CampaignNavbar() {
     pathname === `${planner2Href}/` ||
     pathname === campaignRoot ||
     pathname === `${campaignRoot}/`;
+  const worldCollections =
+    config.variant === "campaign" && config.campaignId === campaignId
+      ? config.campaignWorldCollections
+      : [];
 
   return (
     <AppShell.Navbar p={0}>
@@ -61,6 +80,7 @@ function CampaignNavbar() {
           component={Link}
           href={`${campaignRoot}/session-dashboard` as Route}
           label="Pulpit sesji"
+          leftSection={<IconBooks {...navIconProps} />}
           prefetch
         />
         <NavLink
@@ -68,6 +88,7 @@ function CampaignNavbar() {
           component={Link}
           href={planner2Href}
           label="Planner"
+          leftSection={<IconBrush {...navIconProps} />}
           prefetch
         />
         <NavLink
@@ -75,6 +96,7 @@ function CampaignNavbar() {
           component={Link}
           href={`${campaignRoot}/threads` as Route}
           label="Wątki"
+          leftSection={<IconRouteAltLeft {...navIconProps} />}
           prefetch
         />
         <NavLink
@@ -82,6 +104,7 @@ function CampaignNavbar() {
           component={Link}
           href={`${campaignRoot}/quests` as Route}
           label="Zadania"
+          leftSection={<IconSwords {...navIconProps} />}
           prefetch
         />
         <NavLink
@@ -89,33 +112,52 @@ function CampaignNavbar() {
           component={Link}
           href={`${campaignRoot}/scenes` as Route}
           label="Sceny"
+          leftSection={<IconMap2 {...navIconProps} />}
           prefetch
         />
-
-        <Divider my={4} />
-
-        <Text c="dimmed" fw={600} px={8} size="xs" tt="uppercase">Świat</Text>
         <NavLink
           active={pathname.startsWith(`${campaignRoot}/player-characters`)}
           component={Link}
           href={`${campaignRoot}/player-characters` as Route}
           label="Postacie graczy"
+          leftSection={<IconUsersGroup {...navIconProps} />}
           prefetch
         />
-        <NavLink
-          active={pathname.startsWith(`${campaignRoot}/npcs`)}
-          component={Link}
-          href={`${campaignRoot}/npcs` as Route}
-          label="NPC"
-          prefetch
-        />
-        <NavLink
-          active={pathname.startsWith(`${campaignRoot}/locations`)}
-          component={Link}
-          href={`${campaignRoot}/locations` as Route}
-          label="Miejsca"
-          prefetch
-        />
+
+        <Divider my={4} />
+
+        <Group justify="space-between" px={8} wrap="nowrap">
+          <Text c="dimmed" fw={600} size="xs" tt="uppercase">
+            Świat
+          </Text>
+          <ActionIcon
+            aria-label="Dodaj kolekcję świata"
+            component={Link}
+            href={`${campaignRoot}/world/new` as Route}
+            prefetch
+            size="sm"
+            variant="subtle"
+          >
+            <IconPlus size={14} />
+          </ActionIcon>
+        </Group>
+        {worldCollections.map((collection) => {
+          const Icon = getWorldIcon(collection.icon);
+          return (
+            <NavLink
+              key={collection.id}
+              active={
+                pathname === `${campaignRoot}/world/${collection.slug}` ||
+                pathname.startsWith(`${campaignRoot}/world/${collection.slug}/`)
+              }
+              component={Link}
+              href={`${campaignRoot}/world/${collection.slug}` as Route}
+              label={collection.plural_name}
+              leftSection={<Icon size={16} stroke={1.8} />}
+              prefetch
+            />
+          );
+        })}
 
         <Divider my={4} />
 
@@ -125,6 +167,7 @@ function CampaignNavbar() {
           component={Link}
           href={`${campaignRoot}/shop-generator` as Route}
           label="Generator sklepów"
+          leftSection={<IconTool {...navIconProps} />}
           prefetch
         />
       </CampaignNavRail>

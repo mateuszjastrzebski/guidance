@@ -55,6 +55,8 @@ export type Planner2ReactFlowPilotContextValue = {
   setFocusedThreadId: (id: string | null) => void;
   /** Zwraca etykietę numeryczną eventu w jego wątku, np. "3" lub "3a". */
   getEventLabel: (nodeId: string) => string | undefined;
+  /** Zwraca posortowane nodeId eventów należących do wątku (bez ghostów), w kolejności etykiet. */
+  getThreadEventIds: (threadId: string) => string[];
   insertEventOnEdge: (edge: Edge) => void;
   openEventDetails: (nodeId: string) => void;
   patchEventData: (nodeId: string, partial: Partial<PlannerEventNodeData>) => void;

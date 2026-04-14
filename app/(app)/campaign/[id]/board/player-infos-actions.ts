@@ -11,8 +11,7 @@ function isUuid(value: string): boolean {
 
 export type EntityRef =
   | { type: "event"; id: string }
-  | { type: "location"; id: string }
-  | { type: "npc"; id: string }
+  | { type: "world_entry"; id: string }
   | { type: "quest"; id: string };
 
 export type PlayerInfoWithReveals = {
@@ -50,12 +49,9 @@ export async function listPlayerInfosForEntity(
 
   if (ref.type === "event") {
     query = query.eq("planner_event_id", ref.id);
-  } else if (ref.type === "location") {
-    if (!isUuid(ref.id)) return { ok: false, error: "Nieprawidłowa lokacja." };
-    query = query.eq("location_id", ref.id);
-  } else if (ref.type === "npc") {
-    if (!isUuid(ref.id)) return { ok: false, error: "Nieprawidłowy NPC." };
-    query = query.eq("npc_id", ref.id);
+  } else if (ref.type === "world_entry") {
+    if (!isUuid(ref.id)) return { ok: false, error: "Nieprawidłowy element świata." };
+    query = query.eq("world_entry_id", ref.id);
   } else if (ref.type === "quest") {
     if (!isUuid(ref.id)) return { ok: false, error: "Nieprawidłowy quest." };
     query = query.eq("quest_id", ref.id);
@@ -105,12 +101,9 @@ export async function createPlayerInfo(
 
   if (ref.type === "event") {
     insert.planner_event_id = ref.id;
-  } else if (ref.type === "location") {
-    if (!isUuid(ref.id)) return { ok: false, error: "Nieprawidłowa lokacja." };
-    insert.location_id = ref.id;
-  } else if (ref.type === "npc") {
-    if (!isUuid(ref.id)) return { ok: false, error: "Nieprawidłowy NPC." };
-    insert.npc_id = ref.id;
+  } else if (ref.type === "world_entry") {
+    if (!isUuid(ref.id)) return { ok: false, error: "Nieprawidłowy element świata." };
+    insert.world_entry_id = ref.id;
   } else if (ref.type === "quest") {
     if (!isUuid(ref.id)) return { ok: false, error: "Nieprawidłowy quest." };
     insert.quest_id = ref.id;

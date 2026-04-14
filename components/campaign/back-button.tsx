@@ -1,17 +1,16 @@
 "use client";
 
-import { Anchor } from "@mantine/core";
+import { ActionIcon, Tooltip } from "@mantine/core";
+import { IconArrowLeft } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 
-type BackButtonProps = {
-  label?: string;
-};
-
-export function BackButton({ label = "Wróć" }: BackButtonProps) {
+export function BackButton() {
   const router = useRouter();
   return (
-    <Anchor component="button" onClick={() => router.back()} size="sm">
-      {label}
-    </Anchor>
+    <Tooltip label="Wróć">
+      <ActionIcon aria-label="Wróć" onClick={() => router.back()} size="lg" variant="subtle">
+        <IconArrowLeft size={20} />
+      </ActionIcon>
+    </Tooltip>
   );
 }

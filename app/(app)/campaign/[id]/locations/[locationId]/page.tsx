@@ -1,6 +1,5 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
-import { LocationDetailPage } from "@/components/campaign/location-detail-page";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type LocationDetailRouteProps = {
@@ -10,39 +9,24 @@ type LocationDetailRouteProps = {
 export default async function LocationDetailRoute({ params }: LocationDetailRouteProps) {
   const { id: campaignId, locationId } = await params;
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const { data: entry } = await supabase
+    .from("world_entries")
+    .select("collection_id")
+    .eq("campaign_id", campaignId)
+    .eq("id", locationId)
+    .maybeSingle();
 
-  if (!user) {
-    notFound();
-  }
+  if (!entry?.collection_id) notFound();
 
-  const [{ data: location, error }, { data: characterRows }] = await Promise.all([
-    supabase
-      .from("locations")
-      .select("id, name, description")
-      .eq("id", locationId)
-      .eq("campaign_id", campaignId)
-      .single(),
-    supabase
-      .from("characters")
-      .select("id, name")
-      .eq("campaign_id", campaignId)
-      .order("name", { ascending: true })
-  ]);
+  const { data: collection } = await supabase
+    .from("world_collections")
+    .select("slug")
+    .eq("campaign_id", campaignId)
+    .eq("id", entry.collection_id)
+    .maybeSingle();
 
-  if (error || !location) {
-    notFound();
-  }
+  const slug = collection?.slug;
+  if (!slug) notFound();
 
-  const campaignCharacters = (characterRows ?? []).map((c) => ({ id: c.id, name: c.name }));
-
-  return (
-    <LocationDetailPage
-      campaignId={campaignId}
-      campaignCharacters={campaignCharacters}
-      location={location}
-    />
-  );
+  redirect(`/campaign/${campaignId}/world/${slug}/${locationId}`);
 }
