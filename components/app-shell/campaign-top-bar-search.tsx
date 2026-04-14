@@ -77,7 +77,7 @@ export function CampaignTopBarSearch() {
     }
     setQuery("");
     combobox.closeDropdown();
-  }, [pathname]);
+  }, [pathname, combobox]);
 
   const openDropdownIfNeeded = () => {
     if (shouldOpenDropdown) {
