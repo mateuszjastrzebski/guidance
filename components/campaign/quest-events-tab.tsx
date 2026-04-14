@@ -82,7 +82,15 @@ export function QuestEventsTab({ campaignId, questId, npcOptions, locationOption
       );
       const persisted = loadPlanner2ReactFlowPilot(campaignId);
       const updatedNodes = persisted.nodes.map((n) =>
-        n.id === selectedId ? { ...n, data: { ...n.data, [field]: value } } : n
+        n.id === selectedId && n.type === "event"
+          ? {
+              ...n,
+              data: {
+                ...(n.data as PlannerEventNodeData),
+                [field]: value
+              }
+            }
+          : n
       );
       savePlanner2ReactFlowPilot(campaignId, { ...persisted, nodes: updatedNodes });
     },
