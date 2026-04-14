@@ -6,11 +6,15 @@
       "Bash(ls /Users/mathawk/Dropbox/Cursor/TTRPG/app/*/campaign/\\\\[id\\\\]/npcs/)",
       "Bash(ls /Users/mathawk/Dropbox/Cursor/TTRPG/app/*/campaign/\\\\[id\\\\]/player-characters/)",
       "Bash(grep -n \"children\\\\|parent\\\\|branching\" components/planner2/*.tsx lib/planner2*.ts types/*.ts)",
-      "Bash(python3 -c ':*')",
       "Bash(node --input-type=module --eval \"import\\('/Users/mathawk/Dropbox/Cursor/TTRPG/components/planner2/planner2-event-drawer-side-sections.tsx'\\)\")",
       "Bash(supabase db:*)",
       "Bash(grep -n \"Route\\\\|href\\\\|router\\\\.push\" /Users/mathawk/Dropbox/Cursor/TTRPG/components/campaign/*.tsx)",
-      "Bash(grep -n \"detailsNpc\\\\|detailsLocation\\\\|openDetails\\\\|closeDetails\" /Users/mathawk/Dropbox/Cursor/TTRPG/components/campaign/*.tsx)"
+      "Bash(grep -n \"detailsNpc\\\\|detailsLocation\\\\|openDetails\\\\|closeDetails\" /Users/mathawk/Dropbox/Cursor/TTRPG/components/campaign/*.tsx)",
+      "Read(//Users/mathawk/Downloads/**)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")"
+    ],
+    "additionalDirectories": [
+      "/Users/mathawk/Downloads"
     ]
   }
 }

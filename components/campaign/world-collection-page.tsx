@@ -143,7 +143,15 @@ export function WorldCollectionPage({
           ) : (
             <Stack gap="sm">
               {filteredEntries.map((entry) => (
-                <Paper key={entry.id} p="md" radius="md" withBorder>
+                <Paper
+                  key={entry.id}
+                  component={Link}
+                  href={`/campaign/${campaignId}/world/${collection.slug}/${entry.id}` as Route}
+                  p="md"
+                  radius="md"
+                  withBorder
+                  style={{ display: "block", textDecoration: "none", color: "inherit", cursor: "pointer" }}
+                >
                   <Stack gap="xs">
                     <Title order={5}>{entry.name}</Title>
                     {entry.summary ? (
@@ -151,16 +159,6 @@ export function WorldCollectionPage({
                         {entry.summary}
                       </Text>
                     ) : null}
-                    <Group gap="xs">
-                      <Button
-                        component={Link}
-                        href={`/campaign/${campaignId}/world/${collection.slug}/${entry.id}` as Route}
-                        size="compact-sm"
-                        variant="light"
-                      >
-                        Szczegóły
-                      </Button>
-                    </Group>
                   </Stack>
                 </Paper>
               ))}

@@ -20,7 +20,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { updateWorldEntry } from "@/app/(app)/campaign/[id]/world/actions";
+import type { CharacterConfigRow } from "@/app/(app)/campaign/[id]/world/[collectionSlug]/[entryId]/configurator-actions";
 import { BackButton } from "@/components/campaign/back-button";
+import { CharacterConfiguratorTab } from "@/components/campaign/character-configurator-tab";
 import { EditableEntityTitle } from "@/components/campaign/editable-entity-title";
 import { EntityLinksSection } from "@/components/campaign/entity-links-section";
 import { PlayerInfosSection } from "@/components/campaign/player-infos-section";
@@ -56,6 +58,7 @@ type WorldEntryDetailPageProps = {
   allQuests: NamedItem[];
   linkedQuests: LinkedItem[];
   worldLinkSections: WorldLinksSection[];
+  characterConfig?: CharacterConfigRow | null;
 };
 
 
@@ -66,7 +69,8 @@ export function WorldEntryDetailPage({
   entry,
   allQuests,
   linkedQuests,
-  worldLinkSections
+  worldLinkSections,
+  characterConfig = null
 }: WorldEntryDetailPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -158,6 +162,9 @@ export function WorldEntryDetailPage({
             <Tabs.Tab value="info">Info</Tabs.Tab>
             <Tabs.Tab value="threads">Wątki</Tabs.Tab>
             <Tabs.Tab value="player-infos">Informacje dla graczy</Tabs.Tab>
+            {collection.template_key === "npc" ? (
+              <Tabs.Tab value="configurator">Konfigurator</Tabs.Tab>
+            ) : null}
           </Tabs.List>
         </Box>
 
@@ -270,6 +277,16 @@ export function WorldEntryDetailPage({
             entityRef={{ type: "world_entry", id: entry.id }}
           />
         </Tabs.Panel>
+
+        {collection.template_key === "npc" ? (
+          <Tabs.Panel value="configurator" pb="xl" pt="md" px="lg">
+            <CharacterConfiguratorTab
+              campaignId={campaignId}
+              config={characterConfig}
+              worldEntryId={entry.id}
+            />
+          </Tabs.Panel>
+        ) : null}
       </Tabs>
     </Stack>
   );

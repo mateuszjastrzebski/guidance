@@ -260,7 +260,7 @@ export function AdaptiveAppShell({ children }: AdaptiveAppShellProps) {
           : undefined
       }
     >
-      <AppShell.Header>
+      <AppShell.Header zIndex={400}>
         <Box
           component="div"
           h="100%"

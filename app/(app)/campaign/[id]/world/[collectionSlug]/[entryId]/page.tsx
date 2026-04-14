@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { getCharacterConfig } from "@/app/(app)/campaign/[id]/world/[collectionSlug]/[entryId]/configurator-actions";
 import { WorldEntryDetailPage } from "@/components/campaign/world-entry-detail-page";
 import {
   fetchCampaignEntityLinks,
@@ -79,6 +80,9 @@ export default async function WorldEntryRoute({ params }: WorldEntryRouteProps) 
 
   if (entryError || !entry) notFound();
 
+  const characterConfig =
+    collection.template_key === "npc" ? await getCharacterConfig(entry.id) : null;
+
   const itemMap = new Map<string, LinkedItemDescriptor>(
     (worldRows ?? []).map((row) => {
       const collectionMeta = firstCollectionMeta(row.world_collections);
@@ -149,6 +153,7 @@ export default async function WorldEntryRoute({ params }: WorldEntryRouteProps) 
       worldLinkSections={worldLinkSections}
       allQuests={(questRows ?? []).map((quest) => ({ id: quest.id, name: quest.name }))}
       linkedQuests={linkedQuests}
+      characterConfig={characterConfig}
     />
   );
 }

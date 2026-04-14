@@ -18,7 +18,6 @@ import {
 } from "@mantine/core";
 import { IconFileText, IconPlus, IconX } from "@tabler/icons-react";
 import type { Route } from "next";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -216,7 +215,14 @@ export function EntityLinksSection({
               const isExpanded = expandedRowId === item.id;
 
               return (
-                <Paper key={item.linkId} p="md" radius="md" withBorder>
+                <Paper
+                  key={item.linkId}
+                  p="md"
+                  radius="md"
+                  withBorder
+                  style={item.href ? { cursor: "pointer" } : undefined}
+                  onClick={item.href ? () => router.push(item.href as Route) : undefined}
+                >
                   <Stack gap="sm">
                     <Group align="flex-start" justify="space-between" wrap="nowrap">
                       <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
@@ -229,7 +235,7 @@ export function EntityLinksSection({
                         <ActionIcon
                           aria-label={`Notatki o ${item.name}`}
                           color={isExpanded ? "blue" : "gray"}
-                          onClick={() => toggleNoteRow(item.id)}
+                          onClick={(e) => { e.stopPropagation(); toggleNoteRow(item.id); }}
                           size="sm"
                           variant={isExpanded ? "light" : "subtle"}
                         >
@@ -239,7 +245,7 @@ export function EntityLinksSection({
                           aria-label={`Usuń ${item.name}`}
                           color="gray"
                           loading={isPending}
-                          onClick={() => handleRemoveLink(item.linkId)}
+                          onClick={(e) => { e.stopPropagation(); handleRemoveLink(item.linkId); }}
                           size="sm"
                           variant="subtle"
                         >
@@ -248,23 +254,13 @@ export function EntityLinksSection({
                       </Group>
                     </Group>
 
-                    <Group gap="xs">
-                      {item.href ? (
-                        <Button
-                          component={Link}
-                          href={item.href as Route}
-                          size="compact-sm"
-                          variant="light"
-                        >
-                          Otwórz
-                        </Button>
-                      ) : null}
-                      {rowNotes.length > 0 ? (
+                    {rowNotes.length > 0 ? (
+                      <Group gap="xs">
                         <Badge color="blue" variant="light">
                           {rowNotes.length} not.
                         </Badge>
-                      ) : null}
-                    </Group>
+                      </Group>
+                    ) : null}
 
                     {isExpanded ? (
                       <Box

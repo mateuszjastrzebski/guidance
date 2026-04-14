@@ -13,7 +13,6 @@ import {
   Tooltip
 } from "@mantine/core";
 import type { Route } from "next";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
@@ -107,8 +106,9 @@ export function ThreadsRosterPage({
                   key={t.id}
                   p="md"
                   radius="md"
-                  style={{ minHeight: portraitHeight + 24 }}
+                  style={{ minHeight: portraitHeight + 24, cursor: "pointer" }}
                   withBorder
+                  onClick={() => router.push(`/campaign/${campaignId}/quests/${t.id}` as Route)}
                 >
                   <Group align="flex-start" gap="md" wrap="nowrap">
                     <Box
@@ -186,22 +186,6 @@ export function ThreadsRosterPage({
                           </>
                         )}
                       </Stack>
-                      <Group gap="xs" mt="xs">
-                        <Button
-                          component={Link}
-                          href={`/campaign/${campaignId}/quests/${t.id}` as Route}
-                          prefetch
-                          size="compact-sm"
-                          variant="light"
-                        >
-                          Szczegóły
-                        </Button>
-                        <Tooltip label="Wkrótce">
-                          <Button disabled size="compact-sm" variant="light">
-                            Notatki
-                          </Button>
-                        </Tooltip>
-                      </Group>
                     </Stack>
                   </Group>
                 </Paper>
