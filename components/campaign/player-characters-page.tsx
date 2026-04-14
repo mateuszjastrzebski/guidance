@@ -7,19 +7,16 @@ import {
   Container,
   Group,
   Image,
-  Modal,
   Paper,
   Stack,
   Text,
-  TextInput,
   Title,
   Tooltip
 } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useState, useTransition, type FormEvent } from "react";
+import { useTransition } from "react";
 
 import { createPlayerCharacter } from "@/app/(app)/campaign/[id]/player-characters/actions";
 
@@ -56,91 +53,27 @@ export function PlayerCharactersPage({
   const portraitColWidth = 112;
   const portraitHeight = 136;
   const router = useRouter();
-  const [addOpened, { open: openAdd, close: closeAdd }] = useDisclosure(false);
-  const [formError, setFormError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const onAddSubmit = useCallback(
-    (e: FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      const form = e.currentTarget;
-      const fd = new FormData(form);
-      setFormError(null);
-      startTransition(async () => {
-        const result = await createPlayerCharacter(fd);
-        if (result.error) {
-          setFormError(result.error);
-          return;
-        }
-        form.reset();
-        closeAdd();
-        router.refresh();
-      });
-    },
-    [closeAdd, router]
-  );
+  const handleAdd = () => {
+    startTransition(async () => {
+      const result = await createPlayerCharacter(campaignId);
+      if ("error" in result) return;
+      router.push(`/campaign/${campaignId}/player-characters/${result.id}?new=1` as Route);
+    });
+  };
 
   return (
-    <Container pb="xl" pt="md" size="md">
+    <Container pb="xl" pt="md" size="lg">
       <Stack gap="lg">
         <Group align="flex-start" justify="space-between" wrap="nowrap">
           <Title order={2}>Postacie graczy</Title>
           {canAddCharacter ? (
-            <Button onClick={openAdd} size="sm" variant="light">
+            <Button loading={isPending} onClick={handleAdd} size="sm" variant="light">
               Dodaj postać
             </Button>
           ) : null}
         </Group>
-
-        <Modal
-          centered
-          onClose={() => {
-            setFormError(null);
-            closeAdd();
-          }}
-          opened={addOpened}
-          title="Nowa postać"
-        >
-          <form onSubmit={onAddSubmit}>
-            <input name="campaignId" type="hidden" value={campaignId} />
-            <Stack gap="md">
-              <TextInput
-                label="Nazwa"
-                name="name"
-                placeholder="np. Aria Keth"
-                required
-                withAsterisk
-              />
-              <TextInput
-                description="Opcjonalnie"
-                label="Poziom"
-                name="level"
-                placeholder="np. 5"
-                type="number"
-              />
-              {formError ? (
-                <Text c="red" size="sm">
-                  {formError}
-                </Text>
-              ) : null}
-              <Group justify="flex-end" mt="xs">
-                <Button
-                  onClick={() => {
-                    setFormError(null);
-                    closeAdd();
-                  }}
-                  type="button"
-                  variant="default"
-                >
-                  Anuluj
-                </Button>
-                <Button loading={isPending} type="submit">
-                  Utwórz
-                </Button>
-              </Group>
-            </Stack>
-          </form>
-        </Modal>
 
         {errorMessage ? (
           <Text c="red" size="sm">

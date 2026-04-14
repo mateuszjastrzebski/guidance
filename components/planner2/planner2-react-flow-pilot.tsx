@@ -529,6 +529,36 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
     [threadNumberingMap]
   );
 
+  const getThreadEventIds = useCallback(
+    (threadId: string): string[] => {
+      const threadNodeIds: string[] = [];
+      for (const n of nodes) {
+        if (n.type === "event") {
+          const d = n.data as PlannerEventNodeData;
+          if (d.threadId === threadId && !d.ghostSourceId) {
+            threadNodeIds.push(n.id);
+          }
+        }
+      }
+      const parseLabel = (l: string) => {
+        const m = l.match(/^(\d+)([a-z]*)$/);
+        return m ? { num: parseInt(m[1]!, 10), suffix: m[2]! } : { num: 0, suffix: l };
+      };
+      return threadNodeIds.sort((a, b) => {
+        const la = threadNumberingMap.get(a) ?? "";
+        const lb = threadNumberingMap.get(b) ?? "";
+        const pa = parseLabel(la);
+        const pb = parseLabel(lb);
+        if (pa.num !== pb.num) return pa.num - pb.num;
+        if (pa.suffix === pb.suffix) return 0;
+        if (pa.suffix === "") return -1;
+        if (pb.suffix === "") return 1;
+        return pa.suffix < pb.suffix ? -1 : 1;
+      });
+    },
+    [nodes, threadNumberingMap]
+  );
+
   const openEventDetails = useCallback(
     (nodeId: string) => {
       setEventDetailsNodeId(resolveEventNodeId(nodeId));
@@ -1538,6 +1568,7 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
       focusedThreadId,
       setFocusedThreadId,
       getEventLabel,
+      getThreadEventIds,
       insertEventOnEdge,
       openEventDetails,
       patchEventData,
@@ -1558,6 +1589,7 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
       createThreadForEvent,
       focusedThreadId,
       getEventLabel,
+      getThreadEventIds,
       insertEventOnEdge,
       openEventDetails,
       patchEventData,

@@ -6,20 +6,15 @@ import {
   Button,
   Container,
   Group,
-  Modal,
   Paper,
   Stack,
   Text,
-  TextInput,
-  Textarea,
   Title,
   Tooltip
 } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
 import type { Route } from "next";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useState, useTransition, type FormEvent } from "react";
+import { useTransition } from "react";
 
 import { createQuestForBoard } from "@/app/(app)/campaign/[id]/board/quests-actions";
 import { CampaignEntityPortrait, campaignEntityInitials } from "@/components/campaign/campaign-entity-portrait";
@@ -69,88 +64,27 @@ export function ThreadsRosterPage({
   const portraitColWidth = 112;
   const portraitHeight = 136;
   const router = useRouter();
-  const [addOpened, { open: openAdd, close: closeAdd }] = useDisclosure(false);
-  const [formError, setFormError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const onAddSubmit = useCallback(
-    (e: FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      const form = e.currentTarget;
-      const fd = new FormData(form);
-      const name = String(fd.get("name") ?? "").trim();
-      const descriptionRaw = String(fd.get("description") ?? "").trim();
-      const description = descriptionRaw.length > 0 ? descriptionRaw : null;
-      setFormError(null);
-      startTransition(async () => {
-        const result = await createQuestForBoard(campaignId, name || undefined, description);
-        if (!result.ok) {
-          setFormError(result.error);
-          return;
-        }
-        form.reset();
-        closeAdd();
-        router.refresh();
-      });
-    },
-    [campaignId, closeAdd, router]
-  );
+  const handleAdd = () => {
+    startTransition(async () => {
+      const result = await createQuestForBoard(campaignId);
+      if (!result.ok) return;
+      router.push(`/campaign/${campaignId}/quests/${result.id}?new=1` as Route);
+    });
+  };
 
   return (
-    <Container pb="xl" pt="md" size="md">
+    <Container pb="xl" pt="md" size="lg">
       <Stack gap="lg">
         <Group align="flex-start" justify="space-between" wrap="nowrap">
           <Title order={2}>Wątki</Title>
           {canAddThread ? (
-            <Button onClick={openAdd} size="sm" variant="light">
+            <Button loading={isPending} onClick={handleAdd} size="sm" variant="light">
               Dodaj wątek
             </Button>
           ) : null}
         </Group>
-
-        <Modal
-          centered
-          onClose={() => {
-            setFormError(null);
-            closeAdd();
-          }}
-          opened={addOpened}
-          title="Nowy wątek"
-        >
-          <form onSubmit={onAddSubmit}>
-            <Stack gap="md">
-              <TextInput label="Nazwa" name="name" placeholder="np. Spisek w dokach" required withAsterisk />
-              <Textarea
-                autosize
-                label="Opis"
-                maxRows={6}
-                minRows={3}
-                name="description"
-                placeholder="Opcjonalnie — notatka przy wątku."
-              />
-              {formError ? (
-                <Text c="red" size="sm">
-                  {formError}
-                </Text>
-              ) : null}
-              <Group justify="flex-end" mt="xs">
-                <Button
-                  onClick={() => {
-                    setFormError(null);
-                    closeAdd();
-                  }}
-                  type="button"
-                  variant="default"
-                >
-                  Anuluj
-                </Button>
-                <Button loading={isPending} type="submit">
-                  Utwórz
-                </Button>
-              </Group>
-            </Stack>
-          </form>
-        </Modal>
 
         {errorMessage ? (
           <Text c="red" size="sm">
@@ -172,8 +106,9 @@ export function ThreadsRosterPage({
                   key={t.id}
                   p="md"
                   radius="md"
-                  style={{ minHeight: portraitHeight + 24 }}
+                  style={{ minHeight: portraitHeight + 24, cursor: "pointer" }}
                   withBorder
+                  onClick={() => router.push(`/campaign/${campaignId}/quests/${t.id}` as Route)}
                 >
                   <Group align="flex-start" gap="md" wrap="nowrap">
                     <Box
@@ -251,22 +186,6 @@ export function ThreadsRosterPage({
                           </>
                         )}
                       </Stack>
-                      <Group gap="xs" mt="xs">
-                        <Button
-                          component={Link}
-                          href={`/campaign/${campaignId}/quests/${t.id}` as Route}
-                          prefetch
-                          size="compact-sm"
-                          variant="light"
-                        >
-                          Szczegóły
-                        </Button>
-                        <Tooltip label="Wkrótce">
-                          <Button disabled size="compact-sm" variant="light">
-                            Notatki
-                          </Button>
-                        </Tooltip>
-                      </Group>
                     </Stack>
                   </Group>
                 </Paper>

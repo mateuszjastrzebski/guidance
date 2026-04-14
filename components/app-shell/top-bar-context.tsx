@@ -3,10 +3,33 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
 export type CampaignCharacter = { id: string; name: string };
+export type CampaignSearchItem = {
+  id: string;
+  kind: "character" | "quest" | "world_entry";
+  title: string;
+  secondaryText: string | null;
+  searchText: string;
+  href: string;
+  kindLabel: string;
+};
+export type CampaignWorldCollection = {
+  id: string;
+  slug: string;
+  plural_name: string;
+  icon: string | null;
+  sort_order: number;
+};
 
 export type TopBarConfig =
   | { variant: "app" }
-  | { variant: "campaign"; campaignId: string; campaignName: string; campaignCharacters: CampaignCharacter[] };
+  | {
+      variant: "campaign";
+      campaignId: string;
+      campaignName: string;
+      campaignCharacters: CampaignCharacter[];
+      campaignSearchItems: CampaignSearchItem[];
+      campaignWorldCollections: CampaignWorldCollection[];
+    };
 
 type TopBarContextValue = {
   config: TopBarConfig;

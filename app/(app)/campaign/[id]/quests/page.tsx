@@ -2,7 +2,7 @@ import { Container, Stack, Text, Title } from "@mantine/core";
 
 export default function QuestsListPage() {
   return (
-    <Container pb="xl" pt="md" size="sm">
+    <Container pb="xl" pt="md" size="lg">
       <Stack gap="md">
         <Title order={2}>Zadania</Title>
         <Text c="dimmed" size="sm">

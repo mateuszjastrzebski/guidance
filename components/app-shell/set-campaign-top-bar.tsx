@@ -2,21 +2,48 @@
 
 import { useLayoutEffect } from "react";
 
-import { useTopBar, type CampaignCharacter } from "@/components/app-shell/top-bar-context";
+import {
+  useTopBar,
+  type CampaignCharacter,
+  type CampaignSearchItem,
+  type CampaignWorldCollection
+} from "@/components/app-shell/top-bar-context";
 
 type SetCampaignTopBarProps = {
   campaignId: string;
   campaignName: string;
   campaignCharacters: CampaignCharacter[];
+  campaignSearchItems: CampaignSearchItem[];
+  campaignWorldCollections: CampaignWorldCollection[];
 };
 
-export function SetCampaignTopBar({ campaignId, campaignName, campaignCharacters }: SetCampaignTopBarProps) {
+export function SetCampaignTopBar({
+  campaignId,
+  campaignName,
+  campaignCharacters,
+  campaignSearchItems,
+  campaignWorldCollections
+}: SetCampaignTopBarProps) {
   const { setConfig } = useTopBar();
 
   useLayoutEffect(() => {
-    setConfig({ variant: "campaign", campaignId, campaignName, campaignCharacters });
+    setConfig({
+      variant: "campaign",
+      campaignId,
+      campaignName,
+      campaignCharacters,
+      campaignSearchItems,
+      campaignWorldCollections
+    });
     return () => setConfig({ variant: "app" });
-  }, [campaignId, campaignName, campaignCharacters, setConfig]);
+  }, [
+    campaignCharacters,
+    campaignId,
+    campaignName,
+    campaignSearchItems,
+    campaignWorldCollections,
+    setConfig
+  ]);
 
   return null;
 }

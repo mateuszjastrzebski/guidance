@@ -1,6 +1,17 @@
-import { Anchor, Badge, Button, Container, Group, Stack, Text, Title } from "@mantine/core";
+import {
+  Anchor,
+  Badge,
+  Button,
+  Container,
+  Group,
+  Paper,
+  Stack,
+  Text,
+  Title,
+} from "@mantine/core";
 import Link from "next/link";
 
+import { guidanceReleaseNotes } from "@/lib/guidance-release-notes";
 import { setupStatusItems } from "@/lib/setup-status";
 
 export default function HomePage() {
@@ -25,7 +36,7 @@ export default function HomePage() {
             Campaign Layer
           </Title>
           <Text c="dimmed" mt="sm">
-            Strona główna pokazuje wyłącznie stan przygotowanego setupu na podstawie PRD.
+            Strona główna pokazuje stan przygotowanego setupu oraz historię zmian kolejnych wersji Guidance.
           </Text>
         </div>
 
@@ -38,6 +49,49 @@ export default function HomePage() {
               </li>
             ))}
           </ul>
+        </Stack>
+
+        <Stack gap="md">
+          <div>
+            <Title order={2}>Historia wersji Guidance</Title>
+            <Text c="dimmed" mt={6}>
+              Przegląd został zrekonstruowany na podstawie historii repozytorium i pokazuje, co dochodziło w
+              kolejnych etapach rozwoju.
+            </Text>
+          </div>
+
+          <Stack gap="sm">
+            {guidanceReleaseNotes
+              .slice()
+              .reverse()
+              .map((release) => (
+                <Paper key={release.version} p="lg" radius="md" withBorder>
+                  <Stack gap="sm">
+                    <Group justify="space-between" align="flex-start" wrap="wrap">
+                      <div>
+                        <Group gap="xs">
+                          <Badge variant="light">{release.version}</Badge>
+                          <Text c="dimmed" size="sm">
+                            {release.date}
+                          </Text>
+                        </Group>
+                        <Title mt={8} order={3}>
+                          {release.title}
+                        </Title>
+                      </div>
+                    </Group>
+
+                    <ul style={{ margin: 0, paddingLeft: "1.25rem" }}>
+                      {release.changes.map((change) => (
+                        <li key={change} style={{ marginBottom: "0.5rem" }}>
+                          {change}
+                        </li>
+                      ))}
+                    </ul>
+                  </Stack>
+                </Paper>
+              ))}
+          </Stack>
         </Stack>
 
         <Stack align="start" gap="sm">

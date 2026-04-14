@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, Flex, NavLink } from "@mantine/core";
+import { IconMail, IconSettings } from "@tabler/icons-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -38,6 +39,7 @@ export default function CampaignSettingsLayout({ children, params }: CampaignSet
           component={Link}
           href={settingsHref}
           label="Ustawienia"
+          leftSection={<IconSettings size={16} stroke={1.8} />}
           prefetch
         />
         <NavLink
@@ -45,6 +47,7 @@ export default function CampaignSettingsLayout({ children, params }: CampaignSet
           component={Link}
           href={invitationsHref}
           label="Zaproszenia"
+          leftSection={<IconMail size={16} stroke={1.8} />}
           prefetch
         />
       </CampaignNavRail>
