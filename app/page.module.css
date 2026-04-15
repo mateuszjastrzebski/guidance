@@ -1,0 +1,539 @@
+.page {
+  min-height: 100vh;
+  background: var(--landing-page-bg);
+  color: var(--landing-text);
+}
+
+.container {
+  position: relative;
+}
+
+.badge {
+  background: var(--landing-badge-bg);
+  color: var(--landing-badge-text);
+}
+
+.wordmark {
+  color: var(--landing-wordmark);
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
+  line-height: 1;
+}
+
+.topbarText {
+  color: var(--landing-muted);
+  font-weight: 500;
+}
+
+.heroCard {
+  background: var(--landing-hero-bg);
+  border: 1px solid var(--landing-hero-border);
+  box-shadow: var(--landing-hero-shadow);
+  color: var(--landing-accent-contrast);
+  overflow: hidden;
+  position: relative;
+  padding: clamp(1.5rem, 3vw, 2.75rem);
+}
+
+.heroCard::after {
+  content: "";
+  position: absolute;
+  inset: auto -10% -28% auto;
+  width: 280px;
+  height: 280px;
+  border-radius: 999px;
+  background: var(--landing-hero-after);
+}
+
+.heroGlow {
+  position: absolute;
+  inset: -10% auto auto 45%;
+  width: 28rem;
+  height: 28rem;
+  border-radius: 999px;
+  background: var(--landing-hero-glow);
+  pointer-events: none;
+}
+
+.heroGrid {
+  position: relative;
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+}
+
+.heroContent {
+  position: relative;
+  z-index: 1;
+}
+
+.heroTitle {
+  color: var(--landing-hero-title);
+  font-size: clamp(2.7rem, 7vw, 5.1rem);
+  line-height: 0.98;
+  max-width: 10ch;
+}
+
+.heroText {
+  color: var(--landing-hero-text);
+  max-width: 31ch;
+}
+
+.visualSubtext {
+  color: var(--landing-muted);
+  font-weight: 500;
+}
+
+.heroVisual {
+  position: relative;
+  min-height: 29rem;
+}
+
+.orbit {
+  position: absolute;
+  inset: 10% 7% 6% 7%;
+  border: 1px solid var(--landing-orbit-border);
+  border-radius: 2rem;
+  background: var(--landing-orbit-bg);
+  transform: rotate(-8deg);
+}
+
+.sectionEyebrow {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sectionEyebrow {
+  color: var(--landing-muted);
+  margin-bottom: 0.4rem;
+}
+
+.featureCard,
+.releaseCard,
+.signalCard,
+.floatingCard,
+.moduleSection {
+  border: 1px solid var(--landing-card-border);
+  box-shadow: var(--landing-card-shadow);
+}
+
+.featureCard {
+  background: var(--landing-soft-surface);
+}
+
+.releaseCard {
+  background: var(--landing-soft-surface);
+}
+
+.signalCard {
+  background: var(--landing-soft-surface);
+  min-height: 11rem;
+}
+
+.signalValue {
+  font-size: clamp(2.3rem, 5vw, 4rem);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.signalText {
+  color: var(--landing-module-text);
+  font-weight: 500;
+}
+
+.featureIcon {
+  background: var(--landing-feature-bg);
+  color: var(--landing-feature-text);
+}
+
+.moduleSection {
+  background: var(--landing-module-bg);
+}
+
+.moduleGrid {
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
+}
+
+.moduleLayoutReverse {
+  grid-template-columns: minmax(320px, 1.05fr) minmax(0, 0.95fr);
+}
+
+.moduleLayoutReverse .moduleCopy {
+  order: 2;
+}
+
+.moduleLayoutReverse .moduleMock {
+  order: 1;
+}
+
+.moduleCopy {
+  max-width: 34rem;
+}
+
+.moduleDescription {
+  color: var(--landing-module-text);
+  line-height: 1.55;
+}
+
+.moduleMock {
+  position: relative;
+  min-height: 22rem;
+  border-radius: 1.75rem;
+  overflow: hidden;
+  border: 1px solid var(--landing-card-border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.plannerMock {
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--landing-accent) 18%, white), transparent 28%),
+    linear-gradient(180deg, color-mix(in srgb, var(--landing-mock-surface) 94%, white), color-mix(in srgb, var(--landing-accent) 10%, white));
+}
+
+.sessionMock {
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--landing-accent) 16%, white), transparent 34%),
+    linear-gradient(180deg, color-mix(in srgb, var(--landing-mock-surface) 92%, white), color-mix(in srgb, var(--landing-accent) 8%, white));
+}
+
+.worldMock {
+  background:
+    radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--landing-accent) 14%, white), transparent 30%),
+    linear-gradient(180deg, color-mix(in srgb, var(--landing-mock-surface) 96%, white), color-mix(in srgb, var(--landing-accent) 8%, white));
+}
+
+.rosterMock {
+  background:
+    radial-gradient(circle at top center, color-mix(in srgb, var(--landing-accent) 14%, white), transparent 30%),
+    linear-gradient(180deg, color-mix(in srgb, var(--landing-mock-surface) 96%, white), color-mix(in srgb, var(--landing-accent) 8%, white));
+}
+
+.mockToolbar {
+  display: flex;
+  gap: 0.4rem;
+  padding: 1rem 1rem 0 1rem;
+}
+
+.mockToolbar span,
+.mockSidebarDot,
+.mockAvatarCluster span {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--landing-text) 30%, transparent);
+}
+
+.mockCanvas {
+  position: relative;
+  height: calc(100% - 2rem);
+  padding: 1.25rem;
+}
+
+.mockNode {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 7rem;
+  padding: 0.7rem 1rem;
+  border-radius: 1rem;
+  font-weight: 700;
+  color: var(--landing-text);
+  background: var(--landing-mock-surface);
+  box-shadow: var(--landing-card-shadow);
+}
+
+.mockNodePrimary {
+  top: 2rem;
+  left: 1.75rem;
+}
+
+.mockNodeSecondary {
+  top: 7.5rem;
+  right: 2rem;
+}
+
+.mockNodeAccent {
+  bottom: 2rem;
+  left: 40%;
+  background: color-mix(in srgb, var(--landing-accent) 74%, white);
+  color: var(--landing-accent-contrast);
+}
+
+.mockConnector,
+.mockConnectorShort {
+  position: absolute;
+  border: 1.5px dashed var(--landing-mock-dash);
+  border-left: 0;
+  border-bottom: 0;
+  border-radius: 0 2rem 0 0;
+}
+
+.mockConnector {
+  top: 4.2rem;
+  left: 9.3rem;
+  width: 10rem;
+  height: 4.8rem;
+}
+
+.mockConnectorShort {
+  left: 46%;
+  bottom: 5.2rem;
+  width: 6rem;
+  height: 3rem;
+}
+
+.mockHeaderBar {
+  display: flex;
+  gap: 0.6rem;
+  padding: 1rem 1rem 0 1rem;
+}
+
+.mockPill,
+.mockPillActive,
+.mockWidePill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.mockPill {
+  color: color-mix(in srgb, var(--landing-text) 82%, transparent);
+  background: color-mix(in srgb, var(--landing-mock-surface) 70%, transparent);
+}
+
+.mockPillActive {
+  color: var(--landing-accent-contrast);
+  background: var(--landing-accent);
+}
+
+.mockSplitLayout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1.15fr 0.85fr;
+  padding: 1rem;
+}
+
+.mockSessionColumn,
+.mockWorldContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.mockPanelTitle {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--landing-muted);
+}
+
+.mockPanelCardTall,
+.mockListLine,
+.mockListLineShort,
+.mockWorldCardLarge,
+.mockWorldCardSmall,
+.mockRosterCard,
+.mockRosterCardAccent {
+  border-radius: 1.1rem;
+  background: var(--landing-mock-surface);
+  box-shadow: var(--landing-card-shadow);
+}
+
+.mockPanelCardTall {
+  flex: 1;
+  min-height: 13.5rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), color-mix(in srgb, var(--landing-accent) 10%, white)),
+    radial-gradient(circle at top right, color-mix(in srgb, var(--landing-accent) 22%, white), transparent 28%);
+}
+
+.mockListLine {
+  height: 3.2rem;
+}
+
+.mockListLineShort {
+  height: 2.3rem;
+  width: 75%;
+}
+
+.mockWorldSidebar {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  bottom: 1rem;
+  width: 2.5rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--landing-text) 8%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  padding-top: 0.9rem;
+}
+
+.mockWorldContent {
+  margin-left: 4.4rem;
+  padding: 1rem 1rem 1rem 0;
+}
+
+.mockWorldCardLarge {
+  min-height: 9rem;
+}
+
+.mockWorldRow,
+.mockLinkRow,
+.mockRosterTop,
+.mockRosterCards {
+  display: flex;
+  gap: 0.8rem;
+}
+
+.mockWorldCardSmall {
+  flex: 1;
+  min-height: 5.8rem;
+}
+
+.mockLinkRow span {
+  flex: 1;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--landing-mock-line);
+}
+
+.mockRosterTop {
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1rem 0 1rem;
+}
+
+.mockAvatarCluster {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.mockWidePill {
+  color: var(--landing-text);
+  background: color-mix(in srgb, var(--landing-mock-surface) 92%, white);
+}
+
+.releaseText {
+  color: var(--landing-module-text);
+  line-height: 1.5;
+}
+
+.mockRosterCards {
+  padding: 1rem;
+  flex-direction: column;
+}
+
+.mockRosterCard,
+.mockRosterCardAccent {
+  min-height: 4.8rem;
+}
+
+.mockRosterCardAccent {
+  min-height: 7.5rem;
+  background: var(--landing-mock-strong-surface);
+}
+
+.floatingCard {
+  position: absolute;
+  min-width: 13rem;
+  background: var(--landing-floating-card);
+  backdrop-filter: blur(12px);
+}
+
+.themeSettingsCard {
+  background: var(--landing-settings-bg);
+  border: 1px solid var(--landing-card-border);
+  box-shadow: var(--landing-card-shadow);
+}
+
+.themeSettingsText,
+.themeSettingsHint {
+  color: var(--landing-module-text);
+}
+
+.cardA {
+  top: 8%;
+  right: 8%;
+}
+
+.cardB {
+  left: 4%;
+  top: 42%;
+}
+
+.cardC {
+  right: 14%;
+  bottom: 8%;
+}
+
+.floatingCard:nth-of-type(2) {
+  transform: rotate(6deg);
+}
+
+.floatingCard:nth-of-type(3) {
+  transform: rotate(-7deg);
+}
+
+.floatingCard:nth-of-type(4) {
+  transform: rotate(4deg);
+}
+
+@media (max-width: 48em) {
+  .heroCard {
+    padding: 1.5rem;
+  }
+
+  .heroGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .heroTitle {
+    max-width: none;
+  }
+
+  .heroVisual {
+    min-height: 22rem;
+  }
+
+  .moduleGrid,
+  .moduleLayoutReverse {
+    grid-template-columns: 1fr;
+  }
+
+  .moduleLayoutReverse .moduleCopy,
+  .moduleLayoutReverse .moduleMock {
+    order: initial;
+  }
+
+  .moduleMock {
+    min-height: 18rem;
+  }
+
+  .cardA {
+    top: 4%;
+    right: 2%;
+  }
+
+  .cardB {
+    left: 0;
+    top: 38%;
+  }
+
+  .cardC {
+    right: 4%;
+    bottom: 0;
+  }
+}

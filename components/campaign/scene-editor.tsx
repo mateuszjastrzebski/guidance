@@ -2,9 +2,6 @@
 
 import {
   ActionIcon,
-  Badge,
-  Box,
-  Button,
   Divider,
   Group,
   Paper,
@@ -19,13 +16,13 @@ import { showNotification } from "@mantine/notifications";
 import { IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
 import { useMemo, useState, useTransition, useEffect, useRef } from "react";
 
-import { updateSceneSections, updateSceneTitle } from "@/app/(app)/campaign/[id]/scenes/actions";
-import { EditableEntityTitle } from "@/components/campaign/editable-entity-title";
+import { updateSceneSections } from "@/app/(app)/campaign/[id]/scenes/actions";
 import type { SceneRecord, SceneReferenceBundle, SceneSection } from "@/lib/scenes";
 
 type SceneEditorProps = {
   campaignId: string;
   compact?: boolean;
+  onSaveMetaChange?: (value: { savedAt?: string; state: "error" | "saved" | "saving" }) => void;
   references: SceneReferenceBundle;
   scene: SceneRecord;
 };
@@ -41,8 +38,13 @@ function matchesSearch(name: string, query: string) {
   return name.toLowerCase().includes(query.trim().toLowerCase());
 }
 
-export function SceneEditor({ campaignId, compact = false, references, scene }: SceneEditorProps) {
-  const [titleDraft, setTitleDraft] = useState(scene.name);
+export function SceneEditor({
+  campaignId,
+  compact = false,
+  onSaveMetaChange,
+  references,
+  scene
+}: SceneEditorProps) {
   const [sections, setSections] = useState<SceneSection[]>(scene.outline_sections);
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [search, setSearch] = useState("");
@@ -50,10 +52,9 @@ export function SceneEditor({ campaignId, compact = false, references, scene }: 
   const lastSavedJsonRef = useRef(JSON.stringify(scene.outline_sections));
 
   useEffect(() => {
-    setTitleDraft(scene.name);
     setSections(scene.outline_sections);
     lastSavedJsonRef.current = JSON.stringify(scene.outline_sections);
-  }, [scene.id, scene.name, scene.outline_sections]);
+  }, [scene.id, scene.outline_sections]);
 
   const filteredSearchResults = useMemo(() => {
     if (!search.trim()) {
@@ -69,11 +70,13 @@ export function SceneEditor({ campaignId, compact = false, references, scene }: 
     }
 
     setSaveState("saving");
+    onSaveMetaChange?.({ state: "saving" });
     const timeout = window.setTimeout(() => {
       startTransition(async () => {
         const result = await updateSceneSections(campaignId, scene.id, sections);
         if (!result.ok) {
           setSaveState("error");
+          onSaveMetaChange?.({ state: "error" });
           showNotification({
             color: "red",
             message: result.error ?? "Nie udało się zapisać sceny.",
@@ -83,31 +86,12 @@ export function SceneEditor({ campaignId, compact = false, references, scene }: 
         }
         lastSavedJsonRef.current = serialized;
         setSaveState("saved");
+        onSaveMetaChange?.({ savedAt: result.savedAt, state: "saved" });
       });
     }, 450);
 
     return () => window.clearTimeout(timeout);
   }, [campaignId, scene.id, sections, startTransition]);
-
-  const handleTitleBlur = () => {
-    const trimmed = titleDraft.trim();
-    if (!trimmed || trimmed === scene.name) {
-      setTitleDraft(scene.name);
-      return;
-    }
-
-    startTransition(async () => {
-      const result = await updateSceneTitle(campaignId, scene.id, trimmed);
-      if (!result.ok) {
-        setTitleDraft(scene.name);
-        showNotification({
-          color: "red",
-          message: result.error ?? "Nie udało się zapisać tytułu.",
-          title: "Błąd zapisu tytułu"
-        });
-      }
-    });
-  };
 
   const setSectionField = (id: string, field: "body" | "title", value: string) => {
     setSections((current) =>
@@ -115,8 +99,12 @@ export function SceneEditor({ campaignId, compact = false, references, scene }: 
     );
   };
 
-  const addSection = () => {
-    setSections((current) => [...current, { ...createSection(), order: current.length }]);
+  const addSectionAt = (index: number) => {
+    setSections((current) => {
+      const next = [...current];
+      next.splice(index, 0, createSection());
+      return next.map((section, order) => ({ ...section, order }));
+    });
   };
 
   const removeSection = (id: string) => {
@@ -127,80 +115,42 @@ export function SceneEditor({ campaignId, compact = false, references, scene }: 
     );
   };
 
-  const saveStateLabel =
-    saveState === "saving" ? "Zapisywanie…" : saveState === "error" ? "Błąd zapisu" : "Zapisano";
-
   return (
     <Stack gap="lg">
-      <Paper p={compact ? "md" : "lg"} radius="lg" withBorder>
-        <Stack gap="md">
-          <Group justify="space-between" wrap="wrap">
-            <Stack gap={6} style={{ flex: 1, minWidth: 260 }}>
-              <EditableEntityTitle onBlur={handleTitleBlur} onChange={setTitleDraft} value={titleDraft} />
-              <Group gap="xs">
-                <Badge color={saveState === "error" ? "red" : saveState === "saving" ? "yellow" : "teal"} variant="light">
-                  {saveStateLabel}
-                </Badge>
-                {scene.source_type === "planner_event" ? (
-                  <Badge variant="dot">
-                    {scene.sync_with_source ? "Zsynchronizowana z eventem" : "Scena z eventu"}
-                  </Badge>
-                ) : (
-                  <Badge variant="light">Scena ręczna</Badge>
-                )}
-                {scene.thread_label ? <Badge variant="outline">Wątek: {scene.thread_label}</Badge> : null}
-              </Group>
-            </Stack>
-            <Button leftSection={<IconPlus size={16} />} onClick={addSection} size="sm" variant="light">
-              Dodaj sekcję
-            </Button>
-          </Group>
-
-          {scene.source_type === "planner_event" ? (
-            <Paper p="sm" radius="md" withBorder>
-              <Stack gap={4}>
-                <Text fw={600} size="sm">
-                  Źródło sceny
-                </Text>
-                <Text c="dimmed" size="sm">
-                  Ta scena śledzi metadane eventu planera. Treść sekcji pozostaje niezależna.
-                </Text>
-              </Stack>
-            </Paper>
-          ) : null}
-        </Stack>
-      </Paper>
-
       <Group align="flex-start" grow wrap="nowrap">
         <Stack gap="md" style={{ flex: 1, minWidth: 0 }}>
+          <SectionInsertLine compact={compact} onClick={() => addSectionAt(0)} />
           {sections.map((section, index) => (
-            <Paper key={section.id} p={compact ? "md" : "lg"} radius="lg" withBorder>
-              <Stack gap="sm">
-                <Group justify="space-between" wrap="nowrap">
-                  <TextInput
-                    onChange={(event) => setSectionField(section.id, "title", event.currentTarget.value)}
-                    placeholder="Tytuł sekcji"
-                    styles={{ root: { flex: 1 } }}
-                    value={section.title}
+            <Stack key={section.id} gap="md">
+              <Paper p={compact ? "md" : "lg"} radius="lg" withBorder>
+                <Stack gap="sm">
+                  <Group justify="space-between" wrap="nowrap">
+                    <TextInput
+                      onChange={(event) => setSectionField(section.id, "title", event.currentTarget.value)}
+                      placeholder="Tytuł sekcji"
+                      styles={{ root: { flex: 1 } }}
+                      value={section.title}
+                    />
+                    <ActionIcon
+                      aria-label={`Usuń sekcję ${index + 1}`}
+                      color="red"
+                      onClick={() => removeSection(section.id)}
+                      variant="subtle"
+                    >
+                      <IconTrash size={16} />
+                    </ActionIcon>
+                  </Group>
+                  <Textarea
+                    autosize
+                    minRows={compact ? 4 : 6}
+                    onChange={(event) => setSectionField(section.id, "body", event.currentTarget.value)}
+                    placeholder="Rozpisz przebieg sceny, punkty zwrotne, emocje i możliwe reakcje."
+                    value={section.body}
                   />
-                  <ActionIcon
-                    aria-label={`Usuń sekcję ${index + 1}`}
-                    color="red"
-                    onClick={() => removeSection(section.id)}
-                    variant="subtle"
-                  >
-                    <IconTrash size={16} />
-                  </ActionIcon>
-                </Group>
-                <Textarea
-                  autosize
-                  minRows={compact ? 4 : 6}
-                  onChange={(event) => setSectionField(section.id, "body", event.currentTarget.value)}
-                  placeholder="Rozpisz przebieg sceny, punkty zwrotne, emocje i możliwe reakcje."
-                  value={section.body}
-                />
-              </Stack>
-            </Paper>
+                </Stack>
+              </Paper>
+              <SectionInsertLine compact={compact} onClick={() => addSectionAt(index + 1)} />
+            </Stack>
           ))}
         </Stack>
 
@@ -240,6 +190,31 @@ export function SceneEditor({ campaignId, compact = false, references, scene }: 
         </Text>
       ) : null}
     </Stack>
+  );
+}
+
+function SectionInsertLine({
+  compact,
+  onClick
+}: {
+  compact: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Group gap="sm" wrap="nowrap">
+      <Divider style={{ flex: 1 }} />
+      <ActionIcon
+        aria-label="Dodaj sekcję"
+        color="blue"
+        onClick={onClick}
+        radius="xl"
+        size={compact ? "md" : "lg"}
+        variant="light"
+      >
+        <IconPlus size={16} />
+      </ActionIcon>
+      <Divider style={{ flex: 1 }} />
+    </Group>
   );
 }
 

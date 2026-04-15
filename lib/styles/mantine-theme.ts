@@ -1,12 +1,6 @@
-import { createTheme } from "@mantine/core";
+import { DEFAULT_APP_THEME, getMantineTheme } from "@/lib/styles/app-theme";
 
 /**
- * Centralny motyw Mantine dla Campaign Layer.
- *
- * Wydzielony do osobnego pliku, żeby layout.tsx pozostał krótki,
- * a zmiany w design systemie nie powodowały diff-ów w root layout.
+ * Zachowane dla miejsc, które potrzebują prostego importu theme w testach.
  */
-export const theme = createTheme({
-  primaryColor: "violet",
-  defaultRadius: "md"
-});
+export const theme = getMantineTheme(DEFAULT_APP_THEME);

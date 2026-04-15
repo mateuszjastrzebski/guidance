@@ -9,85 +9,105 @@ export const guidanceReleaseNotes: GuidanceReleaseNote[] = [
   {
     version: "v0.1",
     date: "2026-04-03",
-    title: "Fundament aplikacji",
+    title: "Start przestrzeni roboczej Campaign Layer",
     changes: [
-      "Postawienie bazowego setupu projektu w Next.js 14 z Mantine.",
-      "Dodanie integracji z Supabase, PWA i strony statusowej dostępnej pod localhost:3000.",
-      "Przygotowanie pierwszej dokumentacji technicznej i schematu danych.",
+      "Powstała pierwsza wersja aplikacji, na której można oprzeć dalszy rozwój workspace'u dla MG.",
+      "Uruchomiono bazową stronę produktu i fundament pod docelowe ekrany kampanii.",
+      "Przygotowano model danych, który pozwolił szybko dokładać kolejne moduły kampanii."
     ],
   },
   {
     version: "v0.2",
     date: "2026-04-03",
-    title: "Start logowania",
+    title: "Pierwszy dostęp do aplikacji",
     changes: [
-      "Dodanie pierwszej wersji ekranu logowania.",
-      "Rozpoczęcie spięcia flow autoryzacji z aplikacją.",
+      "Pojawił się ekran logowania otwierający drogę do prywatnego workspace'u użytkownika.",
+      "Rozpoczęto spinanie pełnego wejścia do aplikacji bez ręcznej obsługi po stronie administratora."
     ],
   },
   {
     version: "v0.3",
     date: "2026-04-04",
-    title: "Dokończone auth i poprawki setupu",
+    title: "Działające logowanie i wejście do workspace'u",
     changes: [
-      "Domknięcie logowania przez magic link i callback autoryzacji.",
-      "Poprawki techniczne stabilizujące środowisko startowe projektu.",
+      "Logowanie przez magic link zostało domknięte, więc użytkownik może wejść do swojej przestrzeni bez hasła.",
+      "Dopracowano stabilność podstawowego flow wejścia do aplikacji."
     ],
   },
   {
     version: "v0.4",
     date: "2026-04-05",
-    title: "Przygotowanie dashboardu kampanii",
+    title: "Początek dashboardu fabuł",
     changes: [
-      "Dodanie fundamentów pod główny widok kampanii.",
-      "Przygotowanie struktury aplikacji pod dalsze ekrany produktowe.",
+      "Powstał zrąb głównego widoku, z którego użytkownik może wchodzić do swoich kampanii i jednostrzałów.",
+      "Ułożono strukturę aplikacji pod kolejne moduły pracy MG."
     ],
   },
   {
     version: "v0.5",
     date: "2026-04-07",
-    title: "Podstawy plannera",
+    title: "Pierwszy planner fabuły",
     changes: [
-      "Wdrożenie pierwszej wersji plannera i kluczowych mechanik pracy na wydarzeniach.",
-      "Zbudowanie podstawowego stosu komponentów pod planowanie narracji.",
+      "Do aplikacji wszedł planner, w którym można zacząć rozpisywać wydarzenia i kierunek fabuły.",
+      "Pojawił się pierwszy zestaw mechanik potrzebnych do pracy na wątkach i eventach."
     ],
   },
   {
     version: "v0.6",
     date: "2026-04-09",
-    title: "Timeline i ulepszenia interakcji",
+    title: "Lepsza oś wydarzeń i wygodniejsza praca w plannerze",
     changes: [
-      "Rozbudowa timeliny i zarządzania wydarzeniami w plannerze.",
-      "Dodanie nowych edge'y, dopracowanie node'ów i optymalizacja interakcji.",
-      "Poprawa stylów oraz zachowania komponentów planowania.",
+      "Planner zyskał bardziej dopracowaną oś wydarzeń, dzięki której łatwiej ogarnąć przebieg historii.",
+      "Usprawniono interakcje podczas pracy na eventach i połączeniach między nimi.",
+      "Całość stała się czytelniejsza wizualnie i wygodniejsza w codziennym użyciu."
     ],
   },
   {
     version: "v0.7",
     date: "2026-04-10",
-    title: "Zarządzanie kampanią",
+    title: "Roster postaci i wątki kampanii",
     changes: [
-      "Dodanie funkcji zarządzania postaciami graczy i NPC-ami na dashboardzie kampanii.",
-      "Rozszerzenie warstwy aplikacyjnej o bardziej użyteczne widoki kampanii.",
+      "Doszło zarządzanie postaciami graczy oraz NPC-ami wewnątrz kampanii.",
+      "Wątki kampanii zostały lepiej spięte z plannerem i resztą workspace'u."
     ],
   },
   {
     version: "v0.8",
     date: "2026-04-12",
-    title: "Analityka produktu",
+    title: "Lepsza obserwowalność produktu",
     changes: [
-      "Integracja PostHog z aplikacją Next.js.",
-      "Przygotowanie projektu pod śledzenie zachowań i dalsze decyzje produktowe.",
+      "Produkt został przygotowany do zbierania sygnałów o tym, jak użytkownicy pracują w aplikacji.",
+      "To tworzy bazę pod kolejne decyzje o UX i priorytetach rozwoju."
     ],
   },
   {
     version: "v0.9",
     date: "2026-04-13",
-    title: "Detale encji i lepsza nawigacja",
+    title: "Detale encji i szybsze docieranie do informacji",
     changes: [
-      "Dodanie bardziej dopracowanych widoków szczegółów lokacji i NPC-ów.",
-      "Poprawa nawigacji wstecz i ogólnego UX w formularzach oraz ekranach szczegółów.",
-      "Rozszerzenie zarządzania kampanią o kolejne strony detali.",
+      "Pojawiły się dopracowane widoki szczegółów lokacji, NPC-ów, postaci graczy i questów.",
+      "Nawigacja stała się płynniejsza, więc łatwiej wracać między listami a detalami.",
+      "Rozbudowano roboczą bazę kampanii o notatki, powiązania i kolejne strony szczegółów."
+    ],
+  },
+  {
+    version: "v1.0",
+    date: "2026-04-14",
+    title: "Dashboard sesji i praca na scenach",
+    changes: [
+      "Do kampanii doszedł dashboard sesji z listą sesji i szybkim wejściem w bieżący kontekst prowadzenia.",
+      "Można przełączać widok między trybem eksploracji i walki zależnie od tempa spotkania.",
+      "Sceny da się przypinać do sesji, porządkować i wykorzystywać jako praktyczny plan prowadzenia."
+    ],
+  },
+  {
+    version: "v1.1",
+    date: "2026-04-14",
+    title: "Konfiguracja postaci i bogatsza baza świata",
+    changes: [
+      "Pojawiła się konfiguracja postaci, która porządkuje kluczowe informacje potrzebne przy prowadzeniu bohaterów.",
+      "Świat kampanii dostał bogatsze wpisy, kolekcje oraz lepsze powiązania między elementami.",
+      "Wyszukiwarka i widoki szczegółów lepiej prowadzą użytkownika przez złożoną kampanię."
     ],
   },
 ];

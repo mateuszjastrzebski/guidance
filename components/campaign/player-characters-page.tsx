@@ -10,11 +10,9 @@ import {
   Paper,
   Stack,
   Text,
-  Title,
-  Tooltip
+  Title
 } from "@mantine/core";
 import type { Route } from "next";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
@@ -88,9 +86,10 @@ export function PlayerCharactersPage({
             {characters.map((c) => (
               <Paper
                 key={c.id}
+                onClick={() => router.push(`/campaign/${campaignId}/player-characters/${c.id}` as Route)}
                 p="md"
                 radius="md"
-                style={{ minHeight: portraitHeight + 24 }}
+                style={{ minHeight: portraitHeight + 24, cursor: "pointer" }}
                 withBorder
               >
                 <Group align="flex-start" gap="md" wrap="nowrap">
@@ -133,24 +132,6 @@ export function PlayerCharactersPage({
                     <Title lineClamp={2} maw="100%" order={3} style={{ overflow: "hidden" }}>
                       {c.name}
                     </Title>
-                    <Text c="dimmed" size="sm">
-                      {c.level != null ? `Poziom ${c.level}` : "—"}
-                    </Text>
-                    <Group gap="xs" mt="xs">
-                      <Button
-                        component={Link}
-                        href={`/campaign/${campaignId}/player-characters/${c.id}` as Route}
-                        size="compact-sm"
-                        variant="light"
-                      >
-                        Szczegóły
-                      </Button>
-                      <Tooltip label="Wkrótce">
-                        <Button disabled size="compact-sm" variant="light">
-                          Notatki
-                        </Button>
-                      </Tooltip>
-                    </Group>
                   </Stack>
                 </Group>
               </Paper>

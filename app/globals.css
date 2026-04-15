@@ -7,6 +7,107 @@ body {
   min-height: 100%;
 }
 
+html {
+  --app-body-background: #f4f1fb;
+  --app-body-color: #211b33;
+  --landing-page-bg:
+    radial-gradient(circle at top left, rgba(182, 160, 255, 0.3), transparent 34%),
+    radial-gradient(circle at top right, rgba(110, 139, 232, 0.22), transparent 24%),
+    linear-gradient(180deg, #f7f3ff 0%, #ede7fb 44%, #f8f5ff 100%);
+  --landing-text: #241b36;
+  --landing-wordmark: #3b2a67;
+  --landing-muted: #655780;
+  --landing-accent: #5d54d8;
+  --landing-accent-contrast: #f6f3ff;
+  --landing-card-border: rgba(85, 70, 150, 0.12);
+  --landing-card-shadow: 0 10px 30px rgba(64, 48, 117, 0.08);
+  --landing-soft-surface: rgba(255, 255, 255, 0.8);
+  --landing-hero-bg:
+    linear-gradient(135deg, rgba(49, 38, 93, 0.97), rgba(93, 78, 173, 0.92)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
+  --landing-hero-border: rgba(67, 53, 128, 0.28);
+  --landing-hero-shadow: 0 28px 80px rgba(48, 37, 92, 0.18);
+  --landing-hero-title: #faf7ff;
+  --landing-hero-text: rgba(244, 239, 255, 0.9);
+  --landing-hero-glow: radial-gradient(circle, rgba(130, 108, 232, 0.28), transparent 70%);
+  --landing-hero-after: radial-gradient(circle, rgba(148, 128, 255, 0.26), transparent 68%);
+  --landing-orbit-border: rgba(228, 220, 255, 0.22);
+  --landing-orbit-bg:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+    radial-gradient(circle at center, rgba(143, 126, 236, 0.22), transparent 60%);
+  --landing-feature-bg: rgba(93, 84, 216, 0.14);
+  --landing-feature-text: #4f45bc;
+  --landing-module-bg:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 240, 255, 0.94)),
+    linear-gradient(90deg, rgba(117, 101, 219, 0.06), rgba(140, 176, 255, 0.05));
+  --landing-module-text: #5b4f78;
+  --landing-mock-surface: rgba(255, 255, 255, 0.95);
+  --landing-mock-strong-surface:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(236, 229, 255, 0.96)),
+    radial-gradient(circle at top right, rgba(130, 108, 232, 0.16), transparent 26%);
+  --landing-mock-line: rgba(93, 84, 216, 0.3);
+  --landing-mock-dash: rgba(108, 98, 182, 0.65);
+  --landing-floating-card: rgba(255, 255, 255, 0.94);
+  --landing-badge-bg: rgba(93, 84, 216, 0.14);
+  --landing-badge-text: #4f45bc;
+  --landing-settings-bg:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(243, 238, 255, 0.94)),
+    linear-gradient(90deg, rgba(148, 128, 255, 0.06), rgba(110, 139, 232, 0.05));
+}
+
+html[data-app-theme="parchment"] {
+  --app-body-background: #f8f3ea;
+  --app-body-color: #241b14;
+  --landing-page-bg:
+    radial-gradient(circle at top left, rgba(238, 218, 174, 0.6), transparent 34%),
+    radial-gradient(circle at top right, rgba(137, 179, 154, 0.28), transparent 24%),
+    linear-gradient(180deg, #f6efe2 0%, #efe6d6 44%, #f8f3ea 100%);
+  --landing-text: #241b14;
+  --landing-wordmark: #3d2c1e;
+  --landing-muted: #5e4833;
+  --landing-accent: #335544;
+  --landing-accent-contrast: #fff8ee;
+  --landing-card-border: rgba(110, 84, 57, 0.12);
+  --landing-card-shadow: 0 10px 30px rgba(79, 58, 38, 0.08);
+  --landing-soft-surface: rgba(255, 251, 244, 0.86);
+  --landing-hero-bg:
+    linear-gradient(135deg, rgba(61, 41, 26, 0.96), rgba(121, 74, 42, 0.92)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
+  --landing-hero-border: rgba(78, 53, 34, 0.2);
+  --landing-hero-shadow: 0 28px 80px rgba(65, 43, 28, 0.18);
+  --landing-hero-title: #fff4de;
+  --landing-hero-text: rgba(255, 244, 222, 0.92);
+  --landing-hero-glow: radial-gradient(circle, rgba(223, 164, 82, 0.28), transparent 70%);
+  --landing-hero-after: radial-gradient(circle, rgba(239, 188, 102, 0.38), transparent 68%);
+  --landing-orbit-border: rgba(255, 234, 206, 0.16);
+  --landing-orbit-bg:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+    radial-gradient(circle at center, rgba(255, 210, 143, 0.22), transparent 60%);
+  --landing-feature-bg: rgba(86, 126, 107, 0.15);
+  --landing-feature-text: #335544;
+  --landing-module-bg:
+    linear-gradient(180deg, rgba(255, 251, 245, 0.98), rgba(250, 243, 233, 0.92)),
+    linear-gradient(90deg, rgba(137, 179, 154, 0.05), rgba(233, 183, 91, 0.04));
+  --landing-module-text: #5b4634;
+  --landing-mock-surface: rgba(255, 251, 246, 0.94);
+  --landing-mock-strong-surface:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(242, 229, 211, 0.96)),
+    radial-gradient(circle at top right, rgba(123, 163, 140, 0.16), transparent 26%);
+  --landing-mock-line: rgba(86, 126, 107, 0.34);
+  --landing-mock-dash: rgba(93, 122, 106, 0.65);
+  --landing-floating-card: rgba(255, 250, 243, 0.95);
+  --landing-badge-bg: rgba(86, 126, 107, 0.14);
+  --landing-badge-text: #335544;
+  --landing-settings-bg:
+    linear-gradient(180deg, rgba(255, 251, 245, 0.98), rgba(250, 243, 233, 0.92)),
+    linear-gradient(90deg, rgba(137, 179, 154, 0.06), rgba(233, 183, 91, 0.05));
+}
+
+body {
+  background: var(--app-body-background);
+  color: var(--app-body-color);
+}
+
 a {
   color: inherit;
 }

@@ -1,6 +1,18 @@
 "use client";
 
-import { ActionIcon, AppShell, Box, Divider, Group, Menu, NavLink, Text, Title } from "@mantine/core";
+import {
+  ActionIcon,
+  AppShell,
+  Box,
+  Divider,
+  Group,
+  Menu,
+  NavLink,
+  SegmentedControl,
+  Stack,
+  Text,
+  Title
+} from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconBooks,
@@ -26,6 +38,8 @@ import {
 } from "@/components/app-shell/campaign-nav-rail";
 import { CampaignHeaderToolbar } from "@/components/app-shell/campaign-header-toolbar";
 import { useTopBar } from "@/components/app-shell/top-bar-context";
+import { useAppTheme } from "@/components/theme/app-theme-provider";
+import { appThemeOptions } from "@/lib/styles/app-theme";
 import { getWorldIcon } from "@/lib/world-icons";
 
 const DESKTOP_NAV_COLLAPSED_STORAGE_KEY = "campaign-layer-sidenav-desktop-collapsed";
@@ -33,15 +47,39 @@ const DESKTOP_NAV_COLLAPSED_STORAGE_KEY = "campaign-layer-sidenav-desktop-collap
 const navIconProps: IconProps = { size: 16, stroke: 1.8 };
 
 function AccountActions() {
+  const { themeName, setThemeName } = useAppTheme();
+
   return (
     <Group gap="xs" wrap="nowrap">
-      <Menu position="bottom-end" shadow="md" width={200}>
+      <Menu position="bottom-end" shadow="md" width={260}>
         <Menu.Target>
           <ActionIcon aria-label="Konto" size="lg" variant="subtle">
             <IconUser size={20} />
           </ActionIcon>
         </Menu.Target>
         <Menu.Dropdown>
+          <Box p="sm">
+            <Stack gap="xs">
+              <Text fw={600} size="sm">
+                Motyw interfejsu
+              </Text>
+              <SegmentedControl
+                data={appThemeOptions.map((option) => ({
+                  label: option.label,
+                  value: option.value
+                }))}
+                fullWidth
+                onChange={(value) => setThemeName(value as (typeof appThemeOptions)[number]["value"])}
+                radius="xl"
+                size="xs"
+                value={themeName}
+              />
+              <Text c="dimmed" size="xs">
+                {appThemeOptions.find((option) => option.value === themeName)?.description}
+              </Text>
+            </Stack>
+          </Box>
+          <Menu.Divider />
           <Menu.Item disabled>Ustawienia konta (wkrótce)</Menu.Item>
         </Menu.Dropdown>
       </Menu>

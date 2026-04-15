@@ -115,18 +115,20 @@ export async function updateSceneTitle(
   campaignId: string,
   sceneId: string,
   title: string
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; savedAt?: string }> {
   const trimmed = title.trim();
   if (!trimmed) {
     return { ok: false, error: "Tytuł sceny nie może być pusty." };
   }
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("scenes")
     .update({ name: trimmed })
     .eq("campaign_id", campaignId)
-    .eq("id", sceneId);
+    .eq("id", sceneId)
+    .select("updated_at")
+    .single();
 
   if (error) {
     return { ok: false, error: error.message };
@@ -135,7 +137,7 @@ export async function updateSceneTitle(
   revalidatePath(`/campaign/${campaignId}/scenes`);
   revalidatePath(`/campaign/${campaignId}/scenes/${sceneId}`);
   revalidatePath(`/campaign/${campaignId}/session-dashboard`);
-  return { ok: true };
+  return { ok: true, savedAt: data?.updated_at };
 }
 
 export async function updateSceneSections(
