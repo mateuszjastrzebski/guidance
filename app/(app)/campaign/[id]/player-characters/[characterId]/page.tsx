@@ -6,6 +6,7 @@ import {
   getLinkedItems,
   type LinkedItemDescriptor
 } from "@/lib/entity-links";
+import { getSceneSessionOccurrences } from "@/lib/scenes";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { fetchCampaignWorldCollections } from "@/lib/world";
 
@@ -36,7 +37,7 @@ export default async function PlayerCharacterDetailRoute({
     notFound();
   }
 
-  const [{ data: character, error }, worldCollections, { data: worldRows }, rawLinks] =
+  const [{ data: character, error }, worldCollections, { data: worldRows }, rawLinks, occurrences] =
     await Promise.all([
       supabase
         .from("characters")
@@ -50,7 +51,8 @@ export default async function PlayerCharacterDetailRoute({
         .select("id, name, summary, collection_id, world_collections(id, slug, singular_name, plural_name)")
         .eq("campaign_id", campaignId)
         .order("name"),
-      fetchCampaignEntityLinks(supabase, campaignId)
+      fetchCampaignEntityLinks(supabase, campaignId),
+      getSceneSessionOccurrences(supabase, campaignId, { id: characterId, type: "character" })
     ]);
 
   if (error || !character) {
@@ -96,6 +98,7 @@ export default async function PlayerCharacterDetailRoute({
     <PlayerCharacterDetailPage
       campaignId={campaignId}
       character={character}
+      occurrences={occurrences}
       worldLinkSections={worldLinkSections}
     />
   );

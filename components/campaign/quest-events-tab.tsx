@@ -13,50 +13,116 @@ import {
   Title,
   UnstyledButton
 } from "@mantine/core";
-import { IconHelp, IconMapPin, IconMask } from "@tabler/icons-react";
-import { useCallback, useEffect, useState } from "react";
+import { showNotification } from "@mantine/notifications";
+import { IconHelp } from "@tabler/icons-react";
+import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from "react";
 
+import { createWorldEntryForBoard } from "@/app/(app)/campaign/[id]/board/world-entries-actions";
+import {
+  WorldEntryCollectionEditorSection,
+  type EditableWorldEntryOption
+} from "@/components/campaign/world-entry-collection-editor-section";
+import {
+  loadPlannerGraph,
+  savePlannerGraph
+} from "@/app/(app)/campaign/[id]/planner-2/actions";
 import {
   loadPlanner2ReactFlowPilot,
   savePlanner2ReactFlowPilot
 } from "@/lib/planner2-react-flow-pilot-storage";
 import { getThreadSwimlaneOrders } from "@/lib/planner2-swimlane-thread-layout";
-import type { PlannerEventNodeData } from "@/types/planner2-react-flow-pilot";
+import type {
+  Planner2ReactFlowPilotPersisted,
+  PlannerEventNodeData,
+  PlannerWorldEntryRef
+} from "@/types/planner2-react-flow-pilot";
 import type { Node } from "@xyflow/react";
+import { worldEntryHref } from "@/lib/world";
 
 const DRAWER_WIDTH = 560;
 
 const DLACZEGO_ACCENT = "light-dark(var(--mantine-color-red-6), var(--mantine-color-red-4))";
-const LOCATION_ACCENT = "light-dark(var(--mantine-color-teal-6), var(--mantine-color-teal-4))";
-const NPC_ACCENT = "light-dark(var(--mantine-color-gray-6), var(--mantine-color-gray-4))";
-
 type EventItem = { id: string; data: PlannerEventNodeData };
 
 type QuestEventsTabProps = {
   campaignId: string;
   questId: string;
-  npcOptions: { id: string; name: string }[];
-  locationOptions: { id: string; name: string }[];
+  worldCollections: Array<{
+    icon: string | null;
+    id: string;
+    pluralName: string;
+    singularName: string;
+  }>;
+  worldEntryOptions: Array<{
+    collectionId: string;
+    collectionPluralName: string;
+    collectionSlug: string;
+    id: string;
+    name: string;
+  }>;
 };
 
-export function QuestEventsTab({ campaignId, questId, npcOptions, locationOptions }: QuestEventsTabProps) {
+function resolveEffectiveWorldEntryRefs(
+  data: PlannerEventNodeData | null,
+  worldEntryOptions: QuestEventsTabProps["worldEntryOptions"]
+): PlannerWorldEntryRef[] {
+  if (!data) {
+    return [];
+  }
+
+  const byId = new Map(worldEntryOptions.map((entry) => [entry.id, entry]));
+  const next = [...(data.worldEntryRefs ?? [])];
+  for (const entryId of [...(data.legacyNpcIds ?? []), ...(data.legacyLocationIds ?? [])]) {
+    const match = byId.get(entryId);
+    if (!match) {
+      continue;
+    }
+    if (next.some((ref) => ref.collectionId === match.collectionId && ref.entryId === match.id)) {
+      continue;
+    }
+    next.push({
+      collectionId: match.collectionId,
+      collectionSlug: match.collectionSlug,
+      entryId: match.id
+    });
+  }
+  return next;
+}
+
+export function QuestEventsTab({
+  campaignId,
+  questId,
+  worldCollections,
+  worldEntryOptions
+}: QuestEventsTabProps) {
+  const [availableWorldEntries, setAvailableWorldEntries] = useState(worldEntryOptions);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [drawerData, setDrawerData] = useState<PlannerEventNodeData | null>(null);
 
-  const npcById = new Map(npcOptions.map((n) => [n.id, n]));
-  const locationById = new Map(locationOptions.map((l) => [l.id, l]));
+  useEffect(() => {
+    setAvailableWorldEntries(worldEntryOptions);
+  }, [worldEntryOptions]);
+
+  const effectiveWorldEntryRefs = useMemo(
+    () => resolveEffectiveWorldEntryRefs(drawerData, availableWorldEntries),
+    [availableWorldEntries, drawerData]
+  );
 
   const loadEvents = useCallback(() => {
-    const persisted = loadPlanner2ReactFlowPilot(campaignId);
-    const { orders } = getThreadSwimlaneOrders(persisted.nodes, persisted.edges, persisted.laneOrders);
-    const orderedIds = orders[questId] ?? [];
-    const nodeById = new Map(persisted.nodes.map((n) => [n.id, n]));
-    const ordered = orderedIds
-      .map((id) => nodeById.get(id))
-      .filter((n): n is Node<PlannerEventNodeData> => !!n && n.type === "event")
-      .map((n) => ({ id: n.id, data: n.data as PlannerEventNodeData }));
-    setEvents(ordered);
+    void (async () => {
+      const localFallback = loadPlanner2ReactFlowPilot(campaignId);
+      const result = await loadPlannerGraph(campaignId, localFallback);
+      const persisted = result.ok ? result.payload : localFallback;
+      const { orders } = getThreadSwimlaneOrders(persisted.nodes, persisted.edges, persisted.laneOrders);
+      const orderedIds = orders[questId] ?? [];
+      const nodeById = new Map(persisted.nodes.map((n) => [n.id, n]));
+      const ordered = orderedIds
+        .map((id) => nodeById.get(id))
+        .filter((n): n is Node<PlannerEventNodeData> => !!n && n.type === "event")
+        .map((n) => ({ id: n.id, data: n.data as PlannerEventNodeData }));
+      setEvents(ordered);
+    })();
   }, [campaignId, questId]);
 
   useEffect(() => {
@@ -84,9 +150,67 @@ export function QuestEventsTab({ campaignId, questId, npcOptions, locationOption
       const updatedNodes = persisted.nodes.map((n) =>
         n.id === selectedId ? { ...n, data: { ...n.data, [field]: value } } : n
       );
-      savePlanner2ReactFlowPilot(campaignId, { ...persisted, nodes: updatedNodes });
+      const nextPayload = { ...persisted, nodes: updatedNodes } as Planner2ReactFlowPilotPersisted;
+      savePlanner2ReactFlowPilot(campaignId, nextPayload);
+      void savePlannerGraph(campaignId, nextPayload);
     },
     [campaignId, selectedId]
+  );
+
+  const patchEventData = useCallback(
+    (partial: Partial<PlannerEventNodeData>) => {
+      if (!selectedId) {
+        return;
+      }
+      setDrawerData((prev) => (prev ? { ...prev, ...partial } : null));
+      setEvents((prev) =>
+        prev.map((event) =>
+          event.id === selectedId ? { ...event, data: { ...event.data, ...partial } } : event
+        )
+      );
+      const persisted = loadPlanner2ReactFlowPilot(campaignId);
+      const updatedNodes = persisted.nodes.map((node) =>
+        node.id === selectedId ? { ...node, data: { ...node.data, ...partial } } : node
+      );
+      const nextPayload = { ...persisted, nodes: updatedNodes } as Planner2ReactFlowPilotPersisted;
+      savePlanner2ReactFlowPilot(campaignId, nextPayload);
+      void savePlannerGraph(campaignId, nextPayload);
+    },
+    [campaignId, selectedId]
+  );
+
+  const createWorldEntryInline = useCallback(
+    async (collectionId: string, name: string): Promise<EditableWorldEntryOption | null> => {
+      const result = await createWorldEntryForBoard(campaignId, collectionId, name);
+      if (!result.ok) {
+        showNotification({ color: "red", message: result.error, title: "Błąd" });
+        return null;
+      }
+
+      const entry: EditableWorldEntryOption = {
+        collectionId: result.worldEntry.collection_id,
+        collectionSlug: result.worldEntry.collection_slug,
+        id: result.worldEntry.id,
+        name: result.worldEntry.name
+      };
+      const option = {
+        collectionId: result.worldEntry.collection_id,
+        collectionPluralName: result.worldEntry.collection_plural_name,
+        collectionSlug: result.worldEntry.collection_slug,
+        id: result.worldEntry.id,
+        name: result.worldEntry.name
+      };
+
+      setAvailableWorldEntries((prev) => {
+        if (prev.some((candidate) => candidate.id === option.id)) {
+          return prev;
+        }
+        return [...prev, option].sort((a, b) => a.name.localeCompare(b.name, "pl"));
+      });
+
+      return entry;
+    },
+    [campaignId]
   );
 
   if (events.length === 0) {
@@ -232,83 +356,25 @@ export function QuestEventsTab({ campaignId, questId, npcOptions, locationOption
                   />
                 </Stack>
 
-                {(drawerData.locationIds?.length ?? 0) > 0 ? (
-                  <>
-                    <Divider />
-                    <Stack align="flex-start" gap="sm" w="100%">
-                      <Group align="center" gap="sm" wrap="nowrap" w="100%">
-                        <IconMapPin
-                          aria-hidden
-                          size={20}
-                          stroke={1.5}
-                          style={{ color: LOCATION_ACCENT, flexShrink: 0 }}
-                        />
-                        <Title
-                          order={4}
-                          style={{
-                            color:
-                              "light-dark(var(--mantine-color-gray-9), var(--mantine-color-gray-0))",
-                            flex: 1,
-                            fontWeight: 600,
-                            lineHeight: 1.35,
-                            margin: 0
-                          }}
-                        >
-                          Miejsca
-                        </Title>
-                      </Group>
-                      <Stack gap={4} w="100%">
-                        {(drawerData.locationIds ?? []).map((id) => {
-                          const loc = locationById.get(id);
-                          return (
-                            <Text key={id} size="md">
-                              {loc?.name ?? `Lokacja (${id.slice(0, 8)}…)`}
-                            </Text>
-                          );
-                        })}
-                      </Stack>
-                    </Stack>
-                  </>
-                ) : null}
-
-                {(drawerData.npcIds?.length ?? 0) > 0 ? (
-                  <>
-                    <Divider />
-                    <Stack align="flex-start" gap="sm" w="100%">
-                      <Group align="center" gap="sm" wrap="nowrap" w="100%">
-                        <IconMask
-                          aria-hidden
-                          size={20}
-                          stroke={1.5}
-                          style={{ color: NPC_ACCENT, flexShrink: 0 }}
-                        />
-                        <Title
-                          order={4}
-                          style={{
-                            color:
-                              "light-dark(var(--mantine-color-gray-9), var(--mantine-color-gray-0))",
-                            flex: 1,
-                            fontWeight: 600,
-                            lineHeight: 1.35,
-                            margin: 0
-                          }}
-                        >
-                          NPC
-                        </Title>
-                      </Group>
-                      <Stack gap={4} w="100%">
-                        {(drawerData.npcIds ?? []).map((id) => {
-                          const npc = npcById.get(id);
-                          return (
-                            <Text key={id} size="md">
-                              {npc?.name ?? `NPC (${id.slice(0, 8)}…)`}
-                            </Text>
-                          );
-                        })}
-                      </Stack>
-                    </Stack>
-                  </>
-                ) : null}
+                {worldCollections.map((collection) => (
+                  <Box key={collection.id} w="100%">
+                    <Divider mb="lg" />
+                    <WorldEntryCollectionEditorSection
+                      collection={collection}
+                      createWorldEntryInline={createWorldEntryInline}
+                      hrefForRef={(ref) => worldEntryHref(campaignId, ref.collectionSlug, ref.entryId)}
+                      onChange={(nextRefs) =>
+                        patchEventData({
+                          legacyLocationIds: undefined,
+                          legacyNpcIds: undefined,
+                          worldEntryRefs: nextRefs.length > 0 ? nextRefs : undefined
+                        })
+                      }
+                      worldEntryOptions={availableWorldEntries}
+                      worldEntryRefs={effectiveWorldEntryRefs}
+                    />
+                  </Box>
+                ))}
               </Stack>
             ) : null}
           </Box>

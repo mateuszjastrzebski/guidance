@@ -1,0 +1,23 @@
+---
+description: Always end completed tasks with a very short manual test path.
+alwaysApply: true
+---
+
+After completing any implementation task, end your response with a section named `Krótka ścieżka testowa`.
+
+Requirements:
+- Keep it short, usually `3-6` steps.
+- Cover every changed area the user can manually inspect.
+- Each step should say where to go, what to click or enter, and what result should be visible.
+- Prefer exact routes, tabs, buttons, drawers, and forms over generic wording.
+- Write in Polish unless the user requests another language.
+- Do not turn it into a long QA checklist or edge-case matrix.
+
+Format:
+
+```md
+Krótka ścieżka testowa
+1. Wejdź w `...`.
+2. Kliknij `...` i sprawdź, że `...`.
+3. Przejdź do `...` i upewnij się, że `...`.
+```

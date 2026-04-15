@@ -17,6 +17,8 @@ import {
   type PlannerViewMode
 } from "@/types/planner2-react-flow-pilot";
 
+export type Planner2ReactFlowPilotPersistedLocal = Planner2ReactFlowPilotPersisted;
+
 function isEventDataShape(x: unknown): boolean {
   if (!x || typeof x !== "object") {
     return false;

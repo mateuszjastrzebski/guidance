@@ -22,7 +22,9 @@ import { CHARACTER_NAMES } from "@/lib/random-names";
 import { BackButton } from "@/components/campaign/back-button";
 import { EditableEntityTitle } from "@/components/campaign/editable-entity-title";
 import { EntityLinksSection } from "@/components/campaign/entity-links-section";
+import { SessionOccurrencesSection } from "@/components/campaign/session-occurrences-section";
 import type { LinkedItem } from "@/lib/entity-links";
+import type { SessionOccurrence } from "@/lib/scenes";
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -42,6 +44,7 @@ type WorldLinksSection = {
 type PlayerCharacterDetailPageProps = {
   campaignId: string;
   character: { id: string; name: string; level: number | null; portrait_url: string | null };
+  occurrences: SessionOccurrence[];
   worldLinkSections: WorldLinksSection[];
 };
 
@@ -49,6 +52,7 @@ type PlayerCharacterDetailPageProps = {
 export function PlayerCharacterDetailPage({
   campaignId,
   character,
+  occurrences,
   worldLinkSections
 }: PlayerCharacterDetailPageProps) {
   const router = useRouter();
@@ -133,6 +137,7 @@ export function PlayerCharacterDetailPage({
         <Box px="lg">
           <Tabs.List>
             <Tabs.Tab value="info">Info</Tabs.Tab>
+            <Tabs.Tab value="sessions">Sesje</Tabs.Tab>
           </Tabs.List>
         </Box>
 
@@ -175,6 +180,10 @@ export function PlayerCharacterDetailPage({
               />
             ))}
           </SimpleGrid>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="sessions" pb="xl" pt="md" px="lg">
+          <SessionOccurrencesSection occurrences={occurrences} />
         </Tabs.Panel>
       </Tabs>
     </Stack>

@@ -9,6 +9,12 @@ export type PlannerLaneOrders = {
   byThread: Record<string, string[]>;
 };
 
+export type PlannerWorldEntryRef = {
+  collectionId: string;
+  collectionSlug: string;
+  entryId: string;
+};
+
 /** Snapshot układu dla jednego trybu. */
 export type PlannerLayoutSnapshot = {
   positions: Record<string, { x: number; y: number }>;
@@ -40,10 +46,12 @@ export type PlannerEventNodeData = {
   handleSlotPct: PlannerEventHandleSlots;
   /** Tymczasowy podgląd przy wstawianiu klawiszem N — nie zapisuje się w grafie. */
   isPlacementPreview?: boolean;
-  /** NPC przypięci do eventu (panel szczegółów), kolejność = kolejność na liście. */
-  npcIds?: string[];
-  /** Lokacje przypięte do eventu (panel szczegółów), kolejność = kolejność na liście. */
-  locationIds?: string[];
+  /** Legacy migration only. */
+  legacyLocationIds?: string[];
+  /** Legacy migration only. */
+  legacyNpcIds?: string[];
+  /** Wpisy świata przypięte do eventu (panel szczegółów), kolejność = kolejność na liście. */
+  worldEntryRefs?: PlannerWorldEntryRef[];
   threadColor?: string;
   threadId?: string;
   threadLabel?: string;
@@ -138,11 +146,46 @@ export const DEFAULT_PLANNER_EVENT_NODE_DATA: PlannerEventNodeData = {
   ghostCharacterId: undefined,
   ghostSourceId: undefined,
   handleSlotPct: { ...DEFAULT_PLANNER_EVENT_HANDLE_SLOTS },
+  legacyLocationIds: undefined,
+  legacyNpcIds: undefined,
+  worldEntryRefs: undefined,
   threadColor: undefined,
   threadId: undefined,
   threadLabel: undefined,
   title: ""
 };
+
+function normalizePlannerWorldEntryRefs(raw: unknown): PlannerWorldEntryRef[] | undefined {
+  if (!Array.isArray(raw)) {
+    return undefined;
+  }
+
+  const refs = raw
+    .filter((value): value is Record<string, unknown> => !!value && typeof value === "object")
+    .map((value) => ({
+      collectionId:
+        typeof value.collectionId === "string"
+          ? value.collectionId
+          : typeof value.collection_id === "string"
+            ? value.collection_id
+            : "",
+      collectionSlug:
+        typeof value.collectionSlug === "string"
+          ? value.collectionSlug
+          : typeof value.collection_slug === "string"
+            ? value.collection_slug
+            : "",
+      entryId:
+        typeof value.entryId === "string"
+          ? value.entryId
+          : typeof value.entry_id === "string"
+            ? value.entry_id
+            : ""
+    }))
+    .filter((value) => value.collectionId && value.collectionSlug && value.entryId);
+
+  return refs.length > 0 ? refs : undefined;
+}
 
 export function defaultPlannerInfoNodeData(kind: PlannerInfoKind): PlannerInfoNodeData {
   return {
@@ -218,21 +261,22 @@ export function normalizePlannerEventNodeData(raw: unknown): PlannerEventNodeDat
     }
   }
 
+  const worldEntryRefs = normalizePlannerWorldEntryRefs(r.worldEntryRefs);
   const npcIdsRaw = r.npcIds;
-  let npcIds: string[] | undefined;
+  let legacyNpcIds: string[] | undefined;
   if (Array.isArray(npcIdsRaw)) {
-    npcIds = npcIdsRaw.filter((x): x is string => typeof x === "string");
-    if (npcIds.length === 0) {
-      npcIds = undefined;
+    legacyNpcIds = npcIdsRaw.filter((x): x is string => typeof x === "string");
+    if (legacyNpcIds.length === 0) {
+      legacyNpcIds = undefined;
     }
   }
 
   const locationIdsRaw = r.locationIds;
-  let locationIds: string[] | undefined;
+  let legacyLocationIds: string[] | undefined;
   if (Array.isArray(locationIdsRaw)) {
-    locationIds = locationIdsRaw.filter((x): x is string => typeof x === "string");
-    if (locationIds.length === 0) {
-      locationIds = undefined;
+    legacyLocationIds = locationIdsRaw.filter((x): x is string => typeof x === "string");
+    if (legacyLocationIds.length === 0) {
+      legacyLocationIds = undefined;
     }
   }
 
@@ -243,12 +287,13 @@ export function normalizePlannerEventNodeData(raw: unknown): PlannerEventNodeDat
     ghostCharacterId: typeof r.ghostCharacterId === "string" ? r.ghostCharacterId : undefined,
     ghostSourceId: typeof r.ghostSourceId === "string" ? r.ghostSourceId : undefined,
     handleSlotPct: mergeHandleSlots(r.handleSlotPct),
+    legacyLocationIds,
+    legacyNpcIds,
     threadColor: typeof r.threadColor === "string" ? r.threadColor : undefined,
     threadId: typeof r.threadId === "string" ? r.threadId : undefined,
     threadLabel: typeof r.threadLabel === "string" ? r.threadLabel : undefined,
     title: typeof r.title === "string" ? r.title : "",
-    npcIds,
-    locationIds
+    worldEntryRefs
   };
 }
 

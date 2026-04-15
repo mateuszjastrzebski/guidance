@@ -6,6 +6,7 @@ import {
   getLinkedItems,
   type LinkedItemDescriptor
 } from "@/lib/entity-links";
+import { getSceneSessionOccurrences } from "@/lib/scenes";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { fetchCampaignWorldCollections } from "@/lib/world";
 
@@ -40,8 +41,7 @@ export default async function QuestDetailRoute({ params }: QuestDetailRouteProps
     worldCollections,
     { data: worldRows },
     rawLinks,
-    { data: npcRows },
-    { data: locationRows }
+    occurrences
   ] = await Promise.all([
     supabase
       .from("quests")
@@ -57,8 +57,7 @@ export default async function QuestDetailRoute({ params }: QuestDetailRouteProps
       .eq("campaign_id", campaignId)
       .order("name"),
     fetchCampaignEntityLinks(supabase, campaignId),
-    supabase.from("npcs").select("id, name").eq("campaign_id", campaignId).order("name"),
-    supabase.from("locations").select("id, name").eq("campaign_id", campaignId).order("name")
+    getSceneSessionOccurrences(supabase, campaignId, { id: questId, type: "quest" })
   ]);
 
   if (error || !quest) {
@@ -98,9 +97,29 @@ export default async function QuestDetailRoute({ params }: QuestDetailRouteProps
     <QuestDetailPage
       campaignId={campaignId}
       campaignCharacters={(characterRows ?? []).map((c) => ({ id: c.id, name: c.name }))}
-      npcOptions={(npcRows ?? []).map((n) => ({ id: n.id, name: n.name }))}
-      locationOptions={(locationRows ?? []).map((l) => ({ id: l.id, name: l.name }))}
+      occurrences={occurrences}
+      worldCollections={worldCollections.map((collection) => ({
+        icon: collection.icon,
+        id: collection.id,
+        pluralName: collection.plural_name,
+        singularName: collection.singular_name
+      }))}
       worldLinkSections={worldLinkSections}
+      worldEntryOptions={(worldRows ?? []).flatMap((entry) => {
+        const collectionMeta = firstCollectionMeta(entry.world_collections);
+        if (!collectionMeta) {
+          return [];
+        }
+        return [
+          {
+            collectionId: collectionMeta.id,
+            collectionPluralName: collectionMeta.plural_name,
+            collectionSlug: collectionMeta.slug,
+            id: entry.id,
+            name: entry.name
+          }
+        ];
+      })}
       quest={quest}
     />
   );

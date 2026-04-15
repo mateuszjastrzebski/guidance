@@ -16,7 +16,7 @@ import {
   TextInput,
   Tooltip
 } from "@mantine/core";
-import { IconInfoCircle, IconMapPin, IconMask, IconPencil, IconQuestionMark, IconTarget, IconTrash } from "@tabler/icons-react";
+import { IconInfoCircle, IconPencil, IconQuestionMark, IconTarget, IconTrash } from "@tabler/icons-react";
 import { Handle, Position, useUpdateNodeInternals, type NodeProps } from "@xyflow/react";
 import Link from "next/link";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
@@ -29,6 +29,7 @@ import {
   THREAD_PICKER_POPOVER_PROPS,
   ThreadPickerPanel
 } from "@/components/planner2/planner2-thread-picker-panel";
+import { getWorldIcon } from "@/lib/world-icons";
 import {
   clampHandleSlotPct,
   PLANNER_EVENT_EDITOR_PLACEHOLDER,
@@ -70,21 +71,22 @@ function EventNodeInner({ id, data }: NodeProps) {
     campaignId,
     createThreadForEvent,
     focusedThreadId,
-    locationOptions,
-    npcOptions,
     openEventDetails,
     patchEventData,
     setFocusedThreadId,
-    threadOptions
+    threadOptions,
+    worldCollections,
+    worldEntryOptions,
+    worldEntryRefHref
   } = usePlanner2ReactFlowPilot();
 
-  const locationById = useMemo(
-    () => Object.fromEntries(locationOptions.map((l) => [l.id, l])),
-    [locationOptions]
+  const worldEntryById = useMemo(
+    () => Object.fromEntries(worldEntryOptions.map((entry) => [entry.entryId, entry])),
+    [worldEntryOptions]
   );
-  const npcById = useMemo(
-    () => Object.fromEntries(npcOptions.map((n) => [n.id, n])),
-    [npcOptions]
+  const collectionById = useMemo(
+    () => Object.fromEntries(worldCollections.map((collection) => [collection.id, collection])),
+    [worldCollections]
   );
   const d = data as PlannerEventNodeData;
 
@@ -673,59 +675,29 @@ function EventNodeInner({ id, data }: NodeProps) {
             value={eventNodeEditorValue(d)}
             variant="unstyled"
           />
-          {((d.locationIds?.length ?? 0) > 0 ||
-            (d.npcIds?.length ?? 0) > 0 ||
+          {((d.worldEntryRefs?.length ?? 0) > 0 ||
             d.dlaczego?.trim()) ? (
             <Group gap={4} mt={6} wrap="wrap">
-              {d.locationIds?.map((lid) => {
-                const loc = locationById[lid];
-                if (!loc) return null;
+              {d.worldEntryRefs?.map((ref) => {
+                const entry = worldEntryById[ref.entryId];
+                const collection = collectionById[ref.collectionId];
+                const Icon = getWorldIcon(collection?.icon ?? null);
+                if (!entry || !collection) return null;
                 return (
                   <Box
-                    key={lid}
+                    key={`${ref.collectionId}:${ref.entryId}`}
                     className="nodrag"
-                    component="button"
+                    component={Link}
+                    href={worldEntryRefHref(ref)}
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
                     style={{
                       alignItems: "center",
-                      background: "light-dark(var(--mantine-color-teal-0), var(--mantine-color-teal-9))",
-                      border: "1px solid light-dark(var(--mantine-color-teal-3), var(--mantine-color-teal-7))",
-                      borderRadius: "var(--mantine-radius-sm)",
-                      color: "light-dark(var(--mantine-color-teal-7), var(--mantine-color-teal-3))",
-                      cursor: "default",
-                      display: "inline-flex",
-                      fontSize: "var(--mantine-font-size-xs)",
-                      gap: 3,
-                      lineHeight: 1.3,
-                      maxWidth: 120,
-                      overflow: "hidden",
-                      padding: "2px 5px",
-                      whiteSpace: "nowrap"
-                    }}
-                  >
-                    <IconMapPin size={11} style={{ flexShrink: 0 }} />
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{loc.name}</span>
-                  </Box>
-                );
-              })}
-              {d.npcIds?.map((nid) => {
-                const npc = npcById[nid];
-                if (!npc) return null;
-                return (
-                  <Box
-                    key={nid}
-                    className="nodrag"
-                    component="button"
-                    onClick={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    style={{
-                      alignItems: "center",
-                      background: "light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5))",
+                      background: "light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))",
                       border: "1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))",
                       borderRadius: "var(--mantine-radius-sm)",
                       color: "light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-3))",
-                      cursor: "default",
+                      cursor: "pointer",
                       display: "inline-flex",
                       fontSize: "var(--mantine-font-size-xs)",
                       gap: 3,
@@ -736,8 +708,8 @@ function EventNodeInner({ id, data }: NodeProps) {
                       whiteSpace: "nowrap"
                     }}
                   >
-                    <IconMask size={11} style={{ flexShrink: 0 }} />
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{npc.name}</span>
+                    <Icon size={11} stroke={1.5} style={{ flexShrink: 0 }} />
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{entry.name}</span>
                   </Box>
                 );
               })}

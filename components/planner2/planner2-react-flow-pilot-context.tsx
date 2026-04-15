@@ -7,7 +7,8 @@ import type { PilotEdgeSide } from "@/lib/planner2-react-flow-pilot-layout";
 import type {
   PlannerEventNodeData,
   PlannerInfoKind,
-  PlannerInfoNodeData
+  PlannerInfoNodeData,
+  PlannerWorldEntryRef
 } from "@/types/planner2-react-flow-pilot";
 
 export type AddNodeFromNodeSpec =
@@ -25,15 +26,22 @@ export type PlannerCharacterOption = {
   name: string;
 };
 
-export type PlannerNpcOption = {
+export type PlannerWorldCollectionOption = {
+  icon: string | null;
   id: string;
-  name: string;
-  portrait_url: string | null;
+  pluralName: string;
+  singularName: string;
+  slug: string;
 };
 
-export type PlannerLocationOption = {
-  id: string;
+export type PlannerWorldEntryOption = {
+  collectionId: string;
+  collectionPluralName: string;
+  collectionSingularName: string;
+  collectionSlug: string;
+  entryId: string;
   name: string;
+  portrait_url: string | null;
 };
 
 export type Planner2ReactFlowPilotContextValue = {
@@ -41,10 +49,10 @@ export type Planner2ReactFlowPilotContextValue = {
   assignThreadToEvent: (nodeId: string, thread: PlannerThreadOption | null) => void;
   campaignId: string;
   characterOptions: PlannerCharacterOption[];
-  npcOptions: PlannerNpcOption[];
-  locationOptions: PlannerLocationOption[];
-  createNpcInline: (name: string) => Promise<PlannerNpcOption | null>;
-  createLocationInline: (name: string) => Promise<PlannerLocationOption | null>;
+  createWorldEntryInline: (
+    collectionId: string,
+    name: string
+  ) => Promise<PlannerWorldEntryOption | null>;
   closeEventDetails: () => void;
   createThreadForEvent: (
     nodeId: string,
@@ -63,6 +71,9 @@ export type Planner2ReactFlowPilotContextValue = {
   patchInfoData: (nodeId: string, partial: Partial<PlannerInfoNodeData>) => void;
   resolveEventNodeId: (nodeId: string) => string;
   threadOptions: PlannerThreadOption[];
+  worldCollections: PlannerWorldCollectionOption[];
+  worldEntryOptions: PlannerWorldEntryOption[];
+  worldEntryRefHref: (ref: PlannerWorldEntryRef) => string;
 };
 
 const Planner2ReactFlowPilotContext = createContext<Planner2ReactFlowPilotContextValue | null>(

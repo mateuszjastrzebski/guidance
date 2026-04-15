@@ -51,6 +51,15 @@ export type WorldEntry = {
   updated_at: string;
 };
 
+export type WorldEntryWithCollectionMeta = WorldEntry & {
+  world_collections?: {
+    id: string;
+    plural_name: string;
+    singular_name: string;
+    slug: string;
+  } | null;
+};
+
 export type WorldNavCollection = Pick<
   WorldCollection,
   "id" | "slug" | "plural_name" | "icon" | "sort_order"
@@ -165,16 +174,22 @@ export async function fetchCampaignWorldCollections(
 export async function fetchCampaignWorldEntries(
   supabase: SupabaseClient,
   campaignId: string
-): Promise<Array<WorldEntry & { world_collections?: { plural_name: string; slug: string } | null }>> {
+): Promise<WorldEntryWithCollectionMeta[]> {
   const { data } = await supabase
     .from("world_entries")
     .select(
-      "id, campaign_id, collection_id, name, summary, portrait_url, level, data, created_at, updated_at, world_collections(plural_name, slug)"
+      "id, campaign_id, collection_id, name, summary, portrait_url, level, data, created_at, updated_at, world_collections(id, singular_name, plural_name, slug)"
     )
     .eq("campaign_id", campaignId)
     .order("name", { ascending: true });
 
-  return (
-    data as Array<WorldEntry & { world_collections?: { plural_name: string; slug: string } | null }> | null
-  ) ?? [];
+  return (data as WorldEntryWithCollectionMeta[] | null) ?? [];
+}
+
+export function worldEntryHref(
+  campaignId: string,
+  collectionSlug: string,
+  entryId: string
+): string {
+  return `/campaign/${campaignId}/world/${collectionSlug}/${entryId}`;
 }

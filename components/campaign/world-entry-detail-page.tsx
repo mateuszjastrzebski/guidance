@@ -26,9 +26,11 @@ import { CharacterConfiguratorTab } from "@/components/campaign/character-config
 import { EditableEntityTitle } from "@/components/campaign/editable-entity-title";
 import { EntityLinksSection } from "@/components/campaign/entity-links-section";
 import { PlayerInfosSection } from "@/components/campaign/player-infos-section";
+import { SessionOccurrencesSection } from "@/components/campaign/session-occurrences-section";
 import { WorldEntryThreadsTab } from "@/components/campaign/world-entry-threads-tab";
 import type { LinkedItem } from "@/lib/entity-links";
 import { getRandomNamesForTemplate } from "@/lib/random-names";
+import type { SessionOccurrence } from "@/lib/scenes";
 import {
   getWorldTemplateDefinition,
   type WorldCollection,
@@ -55,6 +57,7 @@ type WorldEntryDetailPageProps = {
   campaignCharacters: NamedItem[];
   collection: WorldCollection;
   entry: WorldEntry;
+  occurrences: SessionOccurrence[];
   allQuests: NamedItem[];
   linkedQuests: LinkedItem[];
   worldLinkSections: WorldLinksSection[];
@@ -67,6 +70,7 @@ export function WorldEntryDetailPage({
   campaignCharacters,
   collection,
   entry,
+  occurrences,
   allQuests,
   linkedQuests,
   worldLinkSections,
@@ -162,6 +166,7 @@ export function WorldEntryDetailPage({
             <Tabs.Tab value="info">Info</Tabs.Tab>
             <Tabs.Tab value="threads">Wątki</Tabs.Tab>
             <Tabs.Tab value="player-infos">Informacje dla graczy</Tabs.Tab>
+            <Tabs.Tab value="sessions">Sesje</Tabs.Tab>
             {collection.template_key === "npc" ? (
               <Tabs.Tab value="configurator">Konfigurator</Tabs.Tab>
             ) : null}
@@ -255,7 +260,6 @@ export function WorldEntryDetailPage({
               campaignId={campaignId}
               entryId={entry.id}
               linkedQuestIds={linkedQuests.map((q) => q.id)}
-              templateKey={collection.template_key}
             />
             <EntityLinksSection
               allItems={allQuests}
@@ -276,6 +280,10 @@ export function WorldEntryDetailPage({
             campaignId={campaignId}
             entityRef={{ type: "world_entry", id: entry.id }}
           />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="sessions" pb="xl" pt="md" px="lg">
+          <SessionOccurrencesSection occurrences={occurrences} />
         </Tabs.Panel>
 
         {collection.template_key === "npc" ? (

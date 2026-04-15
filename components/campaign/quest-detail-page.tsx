@@ -11,7 +11,9 @@ import { EditableEntityTitle } from "@/components/campaign/editable-entity-title
 import { EntityLinksSection } from "@/components/campaign/entity-links-section";
 import { PlayerInfosSection } from "@/components/campaign/player-infos-section";
 import { QuestEventsTab } from "@/components/campaign/quest-events-tab";
+import { SessionOccurrencesSection } from "@/components/campaign/session-occurrences-section";
 import type { LinkedItem } from "@/lib/entity-links";
+import type { SessionOccurrence } from "@/lib/scenes";
 
 type NamedItem = { id: string; name: string };
 type WorldLinksSection = {
@@ -23,9 +25,21 @@ type WorldLinksSection = {
 type QuestDetailPageProps = {
   campaignId: string;
   campaignCharacters: NamedItem[];
-  npcOptions: NamedItem[];
-  locationOptions: NamedItem[];
+  occurrences: SessionOccurrence[];
   quest: { id: string; name: string; description: string | null; status: string };
+  worldCollections: Array<{
+    icon: string | null;
+    id: string;
+    pluralName: string;
+    singularName: string;
+  }>;
+  worldEntryOptions: Array<{
+    collectionId: string;
+    collectionPluralName: string;
+    collectionSlug: string;
+    id: string;
+    name: string;
+  }>;
   worldLinkSections: WorldLinksSection[];
 };
 
@@ -39,9 +53,10 @@ const QUEST_STATUS_LABEL: Record<string, string> = {
 export function QuestDetailPage({
   campaignId,
   campaignCharacters,
-  npcOptions,
-  locationOptions,
+  occurrences,
   quest,
+  worldCollections,
+  worldEntryOptions,
   worldLinkSections
 }: QuestDetailPageProps) {
   const router = useRouter();
@@ -95,6 +110,7 @@ export function QuestDetailPage({
             <Tabs.Tab value="info">Info</Tabs.Tab>
             <Tabs.Tab value="events">Zdarzenia</Tabs.Tab>
             <Tabs.Tab value="player-infos">Informacje dla graczy</Tabs.Tab>
+            <Tabs.Tab value="sessions">Sesje</Tabs.Tab>
           </Tabs.List>
         </Box>
 
@@ -130,8 +146,8 @@ export function QuestDetailPage({
           <QuestEventsTab
             campaignId={campaignId}
             questId={quest.id}
-            npcOptions={npcOptions}
-            locationOptions={locationOptions}
+            worldCollections={worldCollections}
+            worldEntryOptions={worldEntryOptions}
           />
         </Tabs.Panel>
 
@@ -142,6 +158,10 @@ export function QuestDetailPage({
             campaignCharacters={campaignCharacters}
             entityRef={{ type: "quest", id: quest.id }}
           />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="sessions" pb="xl" pt="md" px="lg">
+          <SessionOccurrencesSection occurrences={occurrences} />
         </Tabs.Panel>
       </Tabs>
     </Stack>

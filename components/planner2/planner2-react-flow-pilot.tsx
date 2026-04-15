@@ -33,16 +33,20 @@ import {
   useMemo,
   useRef,
   useState,
+  useTransition,
   type MutableRefObject
 } from "react";
 
+import { loadPlannerGraph, savePlannerGraph } from "@/app/(app)/campaign/[id]/planner-2/actions";
 import { listCharactersForBoard } from "@/app/(app)/campaign/[id]/board/characters-actions";
-import { createLocationForBoard, listLocationsForBoard } from "@/app/(app)/campaign/[id]/board/locations-actions";
-import { createNpcForBoard, listNpcsForBoard } from "@/app/(app)/campaign/[id]/board/npcs-actions";
 import {
   createQuestForBoard,
   listQuestsForBoard
 } from "@/app/(app)/campaign/[id]/board/quests-actions";
+import {
+  createWorldEntryForBoard,
+  listWorldEntriesForBoard
+} from "@/app/(app)/campaign/[id]/board/world-entries-actions";
 import { Planner2EventDetailsDrawer } from "@/components/planner2/planner2-event-details-drawer";
 import { Planner2ReactFlowEventNode } from "@/components/planner2/planner2-react-flow-event-node";
 import { Planner2ReactFlowInfoNode } from "@/components/planner2/planner2-react-flow-info-node";
@@ -53,9 +57,9 @@ import {
   type AddNodeFromNodeSpec,
   type Planner2ReactFlowPilotContextValue,
   type PlannerCharacterOption,
-  type PlannerLocationOption,
-  type PlannerNpcOption,
-  type PlannerThreadOption
+  type PlannerThreadOption,
+  type PlannerWorldCollectionOption,
+  type PlannerWorldEntryOption
 } from "@/components/planner2/planner2-react-flow-pilot-context";
 import {
   characterSwimlaneEdges,
@@ -79,7 +83,7 @@ import {
 import { computeThreadNumbering } from "@/lib/planner2-thread-numbering";
 import { buildThreadTimelineRows } from "@/lib/planner2-thread-view-model";
 import { applyPositions, extractPositions } from "@/lib/planner2-swimlane-layout";
-import type { PlannerEventNodeData } from "@/types/planner2-react-flow-pilot";
+import { worldEntryHref } from "@/lib/world";
 import {
   DEFAULT_PLANNER_EVENT_NODE_DATA,
   PLANNER_PILOT_EVENT_EDGE_TYPE,
@@ -87,12 +91,14 @@ import {
   defaultPlannerInfoNodeData,
   plannerAccentColorFromThreadId,
   type Planner2ReactFlowPilotPersisted,
+  type PlannerEventNodeData,
   type PlannerInfoKind,
   type PlannerInfoNodeData,
   type PlannerLaneOrders,
   type PlannerLayoutSnapshot,
   type PlannerPilotNode,
-  type PlannerViewMode
+  type PlannerViewMode,
+  type PlannerWorldEntryRef
 } from "@/types/planner2-react-flow-pilot";
 
 const nodeTypes = { event: Planner2ReactFlowEventNode, info: Planner2ReactFlowInfoNode };
@@ -100,6 +106,48 @@ const nodeTypes = { event: Planner2ReactFlowEventNode, info: Planner2ReactFlowIn
 const edgeTypes = {
   [PLANNER_PILOT_EVENT_EDGE_TYPE]: Planner2ReactFlowPilotEventEdge
 };
+
+function dedupeWorldEntryRefs(refs: PlannerWorldEntryRef[]): PlannerWorldEntryRef[] {
+  const seen = new Set<string>();
+  return refs.filter((ref) => {
+    const key = `${ref.collectionId}:${ref.entryId}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function migrateLegacyWorldEntryRefs(
+  data: PlannerEventNodeData,
+  worldEntriesById: Map<string, PlannerWorldEntryOption>
+): PlannerWorldEntryRef[] | undefined {
+  const next = [...(data.worldEntryRefs ?? [])];
+
+  for (const entryId of data.legacyNpcIds ?? []) {
+    const match = worldEntriesById.get(entryId);
+    if (!match) continue;
+    next.push({
+      collectionId: match.collectionId,
+      collectionSlug: match.collectionSlug,
+      entryId: match.entryId
+    });
+  }
+
+  for (const entryId of data.legacyLocationIds ?? []) {
+    const match = worldEntriesById.get(entryId);
+    if (!match) continue;
+    next.push({
+      collectionId: match.collectionId,
+      collectionSlug: match.collectionSlug,
+      entryId: match.entryId
+    });
+  }
+
+  const deduped = dedupeWorldEntryRefs(next);
+  return deduped.length > 0 ? deduped : undefined;
+}
 
 function withPilotEventEdgeTypesForDisplay(
   nodeList: PlannerPilotNode[],
@@ -375,13 +423,14 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
   const [defaultViewport, setDefaultViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 });
   const [threadOptions, setThreadOptions] = useState<PlannerThreadOption[]>([]);
   const [characterOptions, setCharacterOptions] = useState<PlannerCharacterOption[]>([]);
-  const [npcOptions, setNpcOptions] = useState<PlannerNpcOption[]>([]);
-  const [locationOptions, setLocationOptions] = useState<PlannerLocationOption[]>([]);
+  const [worldCollections, setWorldCollections] = useState<PlannerWorldCollectionOption[]>([]);
+  const [worldEntryOptions, setWorldEntryOptions] = useState<PlannerWorldEntryOption[]>([]);
   const [placementPreviewActive, setPlacementPreviewActive] = useState(false);
   const [previewFlowPos, setPreviewFlowPos] = useState<{ x: number; y: number } | null>(null);
   const [placementTilePx, setPlacementTilePx] = useState<PlacementTilePx | null>(null);
   const [eventDetailsNodeId, setEventDetailsNodeId] = useState<string | null>(null);
   const [focusedThreadId, setFocusedThreadId] = useState<string | null>(null);
+  const [isPlannerLoading, startPlannerTransition] = useTransition();
 
   const viewportRef = useRef<Viewport>({ x: 0, y: 0, zoom: 1 });
   const nodesRef = useRef(nodes);
@@ -595,17 +644,32 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
     setBootstrapped(false);
     undoStackRef.current = [];
     redoStackRef.current = [];
-    const d = loadPlanner2ReactFlowPilot(campaignId);
-    setEdges(d.edges);
-    setLaneOrders(d.laneOrders);
-    setLayouts(d.layouts);
-    const withPos = applyPositions(d.nodes, d.layouts.freeform.positions);
-    setNodes(withPos);
-    const vp = d.layouts.freeform.viewport;
-    setDefaultViewport(vp);
-    viewportRef.current = vp;
-    setViewMode("freeform");
-    setBootstrapped(true);
+    startPlannerTransition(() => {
+      void (async () => {
+        const localFallback = loadPlanner2ReactFlowPilot(campaignId);
+        const result = await loadPlannerGraph(campaignId, localFallback);
+        const d = result.ok ? result.payload : localFallback;
+
+        if (!result.ok) {
+          showNotification({
+            color: "yellow",
+            message: result.error,
+            title: "Planer działa lokalnie"
+          });
+        }
+
+        setEdges(d.edges);
+        setLaneOrders(d.laneOrders);
+        setLayouts(d.layouts);
+        const withPos = applyPositions(d.nodes, d.layouts.freeform.positions);
+        setNodes(withPos);
+        const vp = d.layouts.freeform.viewport;
+        setDefaultViewport(vp);
+        viewportRef.current = vp;
+        setViewMode("freeform");
+        setBootstrapped(true);
+      })();
+    });
   }, [campaignId, setEdges, setNodes]);
 
   useEffect(() => {
@@ -650,15 +714,28 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
   useEffect(() => {
     let canceled = false;
     void (async () => {
-      const result = await listNpcsForBoard(campaignId);
+      const result = await listWorldEntriesForBoard(campaignId);
       if (canceled || !result.ok) {
         return;
       }
-      setNpcOptions(
-        result.npcs.map((n) => ({
-          id: n.id,
-          name: n.name,
-          portrait_url: n.portrait_url
+      setWorldCollections(
+        result.collections.map((collection) => ({
+          icon: collection.icon,
+          id: collection.id,
+          pluralName: collection.plural_name,
+          singularName: collection.singular_name,
+          slug: collection.slug
+        }))
+      );
+      setWorldEntryOptions(
+        result.worldEntries.map((entry) => ({
+          collectionId: entry.collection_id,
+          collectionPluralName: entry.collection_plural_name,
+          collectionSingularName: entry.collection_singular_name,
+          collectionSlug: entry.collection_slug,
+          entryId: entry.id,
+          name: entry.name,
+          portrait_url: entry.portrait_url
         }))
       );
     })();
@@ -667,54 +744,81 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
     };
   }, [campaignId]);
 
-  useEffect(() => {
-    let canceled = false;
-    void (async () => {
-      const result = await listLocationsForBoard(campaignId);
-      if (canceled || !result.ok) {
-        return;
-      }
-      setLocationOptions(
-        result.locations.map((l) => ({
-          id: l.id,
-          name: l.name
-        }))
-      );
-    })();
-    return () => {
-      canceled = true;
-    };
-  }, [campaignId]);
-
-  const createNpcInline = useCallback(
-    async (name: string): Promise<PlannerNpcOption | null> => {
-      const result = await createNpcForBoard(campaignId, name);
+  const createWorldEntryInline = useCallback(
+    async (collectionId: string, name: string): Promise<PlannerWorldEntryOption | null> => {
+      const result = await createWorldEntryForBoard(campaignId, collectionId, name);
       if (!result.ok) {
         showNotification({ color: "red", message: result.error, title: "Błąd" });
         return null;
       }
-      const opt: PlannerNpcOption = {
-        id: result.npc.id,
-        name: result.npc.name,
-        portrait_url: result.npc.portrait_url
+      const opt: PlannerWorldEntryOption = {
+        collectionId: result.worldEntry.collection_id,
+        collectionPluralName: result.worldEntry.collection_plural_name,
+        collectionSingularName: result.worldEntry.collection_singular_name,
+        collectionSlug: result.worldEntry.collection_slug,
+        entryId: result.worldEntry.id,
+        name: result.worldEntry.name,
+        portrait_url: result.worldEntry.portrait_url
       };
-      setNpcOptions((prev) => [...prev, opt].sort((a, b) => a.name.localeCompare(b.name)));
+      setWorldEntryOptions((prev) =>
+        [...prev, opt].sort((a, b) => {
+          const collectionCompare = a.collectionPluralName.localeCompare(b.collectionPluralName, "pl");
+          if (collectionCompare !== 0) {
+            return collectionCompare;
+          }
+          return a.name.localeCompare(b.name, "pl");
+        })
+      );
       return opt;
     },
     [campaignId]
   );
 
-  const createLocationInline = useCallback(
-    async (name: string): Promise<PlannerLocationOption | null> => {
-      const result = await createLocationForBoard(campaignId, name);
-      if (!result.ok) {
-        showNotification({ color: "red", message: result.error, title: "Błąd" });
-        return null;
-      }
-      const opt: PlannerLocationOption = { id: result.location.id, name: result.location.name };
-      setLocationOptions((prev) => [...prev, opt].sort((a, b) => a.name.localeCompare(b.name)));
-      return opt;
-    },
+  const worldEntriesById = useMemo(
+    () => new Map(worldEntryOptions.map((entry) => [entry.entryId, entry])),
+    [worldEntryOptions]
+  );
+
+  useEffect(() => {
+    if (worldEntriesById.size === 0) {
+      return;
+    }
+
+    setNodes((currentNodes) => {
+      let changed = false;
+      const nextNodes = currentNodes.map((node): PlannerPilotNode => {
+        if (node.type !== "event") {
+          return node;
+        }
+        const eventNode = node as Node<PlannerEventNodeData>;
+        const migratedRefs = migrateLegacyWorldEntryRefs(eventNode.data, worldEntriesById);
+        const shouldClearLegacy =
+          (eventNode.data.legacyNpcIds?.length ?? 0) > 0 || (eventNode.data.legacyLocationIds?.length ?? 0) > 0;
+        const hasRefChange =
+          JSON.stringify(migratedRefs ?? []) !== JSON.stringify(eventNode.data.worldEntryRefs ?? []);
+
+        if (!hasRefChange && !shouldClearLegacy) {
+          return node;
+        }
+
+        changed = true;
+        return {
+          ...eventNode,
+          data: {
+            ...eventNode.data,
+            legacyLocationIds: undefined,
+            legacyNpcIds: undefined,
+            worldEntryRefs: migratedRefs
+          }
+        };
+      });
+
+      return changed ? nextNodes : currentNodes;
+    });
+  }, [setNodes, worldEntriesById]);
+
+  const worldEntryRefHref = useCallback(
+    (ref: PlannerWorldEntryRef) => worldEntryHref(campaignId, ref.collectionSlug, ref.entryId),
     [campaignId]
   );
 
@@ -1175,7 +1279,18 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
   }, []);
 
   const persist = useCallback(() => {
-    savePlanner2ReactFlowPilot(campaignId, persistPayload());
+    const payload = persistPayload();
+    savePlanner2ReactFlowPilot(campaignId, payload);
+    void (async () => {
+      const result = await savePlannerGraph(campaignId, payload);
+      if (!result.ok) {
+        showNotification({
+          color: "red",
+          message: result.error ?? "Nie udało się zapisać planera.",
+          title: "Błąd zapisu planera"
+        });
+      }
+    })();
   }, [campaignId, persistPayload]);
 
   const captureHistorySnapshot = useCallback((): PlannerHistorySnapshot => {
@@ -1274,7 +1389,10 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
     if (!bootstrapped) {
       return;
     }
-    persist();
+    const timeout = window.setTimeout(() => {
+      persist();
+    }, 300);
+    return () => window.clearTimeout(timeout);
   }, [bootstrapped, edges, laneOrders, layouts, nodes, persist, viewMode]);
 
   const isValidConnection = useCallback((edgeOrConn: Connection | Edge) => {
@@ -1559,10 +1677,7 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
       assignThreadToEvent,
       campaignId,
       characterOptions,
-      npcOptions,
-      locationOptions,
-      createNpcInline,
-      createLocationInline,
+      createWorldEntryInline,
       closeEventDetails,
       createThreadForEvent,
       focusedThreadId,
@@ -1574,17 +1689,17 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
       patchEventData,
       patchInfoData,
       resolveEventNodeId,
-      threadOptions
+      threadOptions,
+      worldCollections,
+      worldEntryOptions,
+      worldEntryRefHref
     }),
     [
       addNodeFromNode,
       assignThreadToEvent,
       campaignId,
       characterOptions,
-      npcOptions,
-      locationOptions,
-      createNpcInline,
-      createLocationInline,
+      createWorldEntryInline,
       closeEventDetails,
       createThreadForEvent,
       focusedThreadId,
@@ -1595,7 +1710,10 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
       patchEventData,
       patchInfoData,
       resolveEventNodeId,
-      threadOptions
+      threadOptions,
+      worldCollections,
+      worldEntryOptions,
+      worldEntryRefHref
     ]
   );
 
@@ -1713,6 +1831,23 @@ export function Planner2ReactFlowPilot({ campaignId }: Planner2ReactFlowPilotPro
             width: "100%"
           }}
         >
+          {isPlannerLoading ? (
+            <Box
+              style={{
+                alignItems: "center",
+                backdropFilter: "blur(2px)",
+                background: "rgba(255, 255, 255, 0.6)",
+                display: "flex",
+                fontWeight: 600,
+                inset: 0,
+                justifyContent: "center",
+                position: "absolute",
+                zIndex: 20
+              }}
+            >
+              Ładowanie planera…
+            </Box>
+          ) : null}
           {viewMode === "swimlane_thread" ? (
             <Box
               style={{

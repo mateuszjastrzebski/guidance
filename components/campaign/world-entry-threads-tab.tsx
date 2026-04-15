@@ -5,6 +5,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { loadPlannerGraph } from "@/app/(app)/campaign/[id]/planner-2/actions";
 import { loadPlanner2ReactFlowPilot } from "@/lib/planner2-react-flow-pilot-storage";
 import { getThreadSwimlaneOrders } from "@/lib/planner2-swimlane-thread-layout";
 import {
@@ -45,7 +46,6 @@ function pluralEvent(n: number): string {
 type Props = {
   campaignId: string;
   entryId: string;
-  templateKey: string;
   allQuests: { id: string; name: string }[];
   linkedQuestIds: string[];
 };
@@ -53,100 +53,99 @@ type Props = {
 export function WorldEntryThreadsTab({
   campaignId,
   entryId,
-  templateKey,
   allQuests,
   linkedQuestIds
 }: Props) {
   const [threads, setThreads] = useState<ThreadEntry[]>([]);
 
   useEffect(() => {
-    const persisted = loadPlanner2ReactFlowPilot(campaignId);
-    const { orders } = getThreadSwimlaneOrders(
-      persisted.nodes,
-      persisted.edges,
-      persisted.laneOrders
-    );
+    void (async () => {
+      const localFallback = loadPlanner2ReactFlowPilot(campaignId);
+      const loadResult = await loadPlannerGraph(campaignId, localFallback);
+      const persisted = loadResult.ok ? loadResult.payload : localFallback;
+      const { orders } = getThreadSwimlaneOrders(
+        persisted.nodes,
+        persisted.edges,
+        persisted.laneOrders
+      );
 
-    // Zbierz eventy zawierające ten wpis
-    const byThread = new Map<string, { nodeId: string; title: string; co: string }[]>();
+      const byThread = new Map<string, { nodeId: string; title: string; co: string }[]>();
 
-    for (const node of persisted.nodes) {
-      if (node.type !== "event") continue;
-      const data = node.data as PlannerEventNodeData;
+      for (const node of persisted.nodes) {
+        if (node.type !== "event") continue;
+        const data = node.data as PlannerEventNodeData;
 
-      const appearsInEvent =
-        (templateKey === "npc" && (data.npcIds ?? []).includes(entryId)) ||
-        (templateKey === "location" && (data.locationIds ?? []).includes(entryId));
+        const appearsInEvent =
+          (data.worldEntryRefs ?? []).some((ref) => ref.entryId === entryId) ||
+          (data.legacyNpcIds ?? []).includes(entryId) ||
+          (data.legacyLocationIds ?? []).includes(entryId);
 
-      if (!appearsInEvent) continue;
+        if (!appearsInEvent) continue;
 
-      const tid = data.threadId ?? "__none__";
-      const arr = byThread.get(tid) ?? [];
-      arr.push({
-        nodeId: node.id,
-        title: data.title?.trim() || "Bez tytułu",
-        co: data.co ?? ""
-      });
-      byThread.set(tid, arr);
-    }
-
-    // Dodaj ręcznie połączone wątki bez eventów
-    const linkedSet = new Set(linkedQuestIds);
-    for (const qid of linkedSet) {
-      if (!byThread.has(qid)) {
-        byThread.set(qid, []);
-      }
-    }
-
-    const questNameMap = new Map(allQuests.map((q) => [q.id, q.name]));
-
-    const result: ThreadEntry[] = [];
-    for (const [tid, matchEvents] of byThread) {
-      if (tid === "__none__") continue;
-
-      const name = questNameMap.get(tid) ?? "Nieznany wątek";
-      const color = plannerAccentColorFromThreadId(tid);
-      const href = `/campaign/${campaignId}/quests/${tid}`;
-      const threadOrder = orders[tid] ?? [];
-
-      // Posortuj eventy według pozycji w wątku
-      const positioned = matchEvents
-        .map((ev) => ({ ...ev, pos: threadOrder.indexOf(ev.nodeId) }))
-        .filter((ev) => ev.pos !== -1)
-        .sort((a, b) => a.pos - b.pos);
-
-      // Zbuduj listę z przerwami
-      const items: ThreadDisplayItem[] = [];
-      for (let i = 0; i < positioned.length; i++) {
-        const ev = positioned[i];
-        items.push({
-          type: "event",
-          nodeId: ev.nodeId,
-          title: ev.title,
-          co: ev.co,
-          position: ev.pos + 1
+        const tid = data.threadId ?? "__none__";
+        const arr = byThread.get(tid) ?? [];
+        arr.push({
+          nodeId: node.id,
+          title: data.title?.trim() || "Bez tytułu",
+          co: data.co ?? ""
         });
-        if (i < positioned.length - 1) {
-          const gap = positioned[i + 1].pos - ev.pos - 1;
-          if (gap > 0) {
-            items.push({ type: "gap", count: gap });
-          }
+        byThread.set(tid, arr);
+      }
+
+      const linkedSet = new Set(linkedQuestIds);
+      for (const qid of linkedSet) {
+        if (!byThread.has(qid)) {
+          byThread.set(qid, []);
         }
       }
 
-      result.push({
-        threadId: tid,
-        name,
-        color,
-        href,
-        items,
-        isManuallyLinked: linkedSet.has(tid)
-      });
-    }
+      const questNameMap = new Map(allQuests.map((q) => [q.id, q.name]));
+      const result: ThreadEntry[] = [];
 
-    result.sort((a, b) => a.name.localeCompare(b.name, "pl"));
-    setThreads(result);
-  }, [campaignId, entryId, templateKey, allQuests, linkedQuestIds]);
+      for (const [tid, matchEvents] of byThread) {
+        if (tid === "__none__") continue;
+
+        const name = questNameMap.get(tid) ?? "Nieznany wątek";
+        const color = plannerAccentColorFromThreadId(tid);
+        const href = `/campaign/${campaignId}/quests/${tid}`;
+        const threadOrder = orders[tid] ?? [];
+        const positioned = matchEvents
+          .map((ev) => ({ ...ev, pos: threadOrder.indexOf(ev.nodeId) }))
+          .filter((ev) => ev.pos !== -1)
+          .sort((a, b) => a.pos - b.pos);
+
+        const items: ThreadDisplayItem[] = [];
+        for (let i = 0; i < positioned.length; i++) {
+          const ev = positioned[i];
+          items.push({
+            type: "event",
+            nodeId: ev.nodeId,
+            title: ev.title,
+            co: ev.co,
+            position: ev.pos + 1
+          });
+          if (i < positioned.length - 1) {
+            const gap = positioned[i + 1].pos - ev.pos - 1;
+            if (gap > 0) {
+              items.push({ type: "gap", count: gap });
+            }
+          }
+        }
+
+        result.push({
+          threadId: tid,
+          name,
+          color,
+          href,
+          items,
+          isManuallyLinked: linkedSet.has(tid)
+        });
+      }
+
+      result.sort((a, b) => a.name.localeCompare(b.name, "pl"));
+      setThreads(result);
+    })();
+  }, [campaignId, entryId, allQuests, linkedQuestIds]);
 
   if (threads.length === 0) {
     return (

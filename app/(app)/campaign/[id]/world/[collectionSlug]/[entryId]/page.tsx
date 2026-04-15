@@ -8,6 +8,7 @@ import {
   type LinkedItemDescriptor
 } from "@/lib/entity-links";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSceneSessionOccurrences } from "@/lib/scenes";
 import {
   fetchCampaignWorldCollections,
   type WorldCollection,
@@ -43,7 +44,8 @@ export default async function WorldEntryRoute({ params }: WorldEntryRouteProps) 
     { data: characterRows },
     { data: questRows },
     { data: worldRows },
-    rawLinks
+    rawLinks,
+    occurrences
   ] = await Promise.all([
     supabase
       .from("world_collections")
@@ -65,7 +67,8 @@ export default async function WorldEntryRoute({ params }: WorldEntryRouteProps) 
       .select("id, name, summary, collection_id, world_collections(id, slug, singular_name, plural_name)")
       .eq("campaign_id", campaignId)
       .order("name"),
-    fetchCampaignEntityLinks(supabase, campaignId)
+    fetchCampaignEntityLinks(supabase, campaignId),
+    getSceneSessionOccurrences(supabase, campaignId, { id: entryId, type: "world_entry" })
   ]);
 
   if (collectionError || !collection) notFound();
@@ -150,6 +153,7 @@ export default async function WorldEntryRoute({ params }: WorldEntryRouteProps) 
           updated_at: entry.updated_at
         } as WorldEntry
       }
+      occurrences={occurrences}
       worldLinkSections={worldLinkSections}
       allQuests={(questRows ?? []).map((quest) => ({ id: quest.id, name: quest.name }))}
       linkedQuests={linkedQuests}
